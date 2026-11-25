@@ -1,6 +1,6 @@
 # mlu-web documentation
 
-These documents describe the web ports of Motherload Unlimited, which can be played at <https://cerlancism.github.io/mlu-web/>.
+These documents describe the web ports of Motherload Unlimited, which can be played at <https://cerlancism.github.io/mlu-web/web/>.
 
 | Game | Specification | Fixes |
 |---|---|---|

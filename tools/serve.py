@@ -1,15 +1,16 @@
-"""Serve the web/ folder over HTTP on localhost, laid out as it will be on GitHub Pages.
+"""Serve the web/ folder over HTTP on localhost, at the path GitHub Pages gives it.
 
 Usage: python3 -I tools/serve.py [port]        (default port 8000)
-Then open http://localhost:<port>/mlu-web/mlu1/ or http://localhost:<port>/mlu-web/mlu2/
+Then open http://localhost:<port>/mlu-web/web/ (the landing page), or a game's launcher under it:
+mlu1/ or mlu2/.
 
 The web ports use ES modules, which browsers refuse to load from file:// URLs. Each port is
-self-contained (its assets are in its own images/), so only web/ is served: it is the folder
-that GitHub Pages will publish.
+self-contained (its assets are in its own images/), so only web/ is served: it is the site.
 
-web/ is served under /mlu-web/, as a GitHub Pages project site serves a repository named
-mlu-web, so the ports run at the same paths locally as when published. / redirects there;
-anything else outside /mlu-web/ is not found. File names are matched case-sensitively, as on
+GitHub Pages publishes the repository mlu-web from its root, so web/ is at /mlu-web/web/;
+it is served there, so the ports run at the same paths locally as when published. /, /mlu-web/
+(the README on GitHub Pages) and /mlu-web/web redirect there; anything else outside
+/mlu-web/web/ is not found. File names are matched case-sensitively, as on
 GitHub Pages, even though Windows itself ignores case, and every 404 is printed.
 
 This server pins the MIME types the ports need (Python otherwise takes them from the Windows
@@ -20,7 +21,8 @@ import functools, http.server, os, sys, urllib.parse
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent / "web"
-PREFIX = "/mlu-web/"
+PREFIX = "/mlu-web/web/"
+REDIRECTED = ("/", "/mlu-web", "/mlu-web/", PREFIX.rstrip("/"))
 MISSING = str(ROOT.parent / "tools" / "no such file")  # stands for every path that is not served
 
 TYPES = {
@@ -61,7 +63,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         super().do_HEAD()
 
     def _redirect_root(self):
-        if urllib.parse.urlsplit(self.path).path in ("/", PREFIX.rstrip("/")):
+        if urllib.parse.urlsplit(self.path).path in REDIRECTED:
             self.send_response(301)
             self.send_header("Location", PREFIX)
             self.end_headers()
@@ -95,7 +97,7 @@ def main():
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
     handler = functools.partial(Handler, directory=str(ROOT))
     with http.server.ThreadingHTTPServer(("127.0.0.1", port), handler) as httpd:
-        print(f"serving {ROOT} at http://localhost:{port}{PREFIX}mlu1/ and {PREFIX}mlu2/",
+        print(f"serving {ROOT} at http://localhost:{port}{PREFIX}",
               flush=True)
         try:
             httpd.serve_forever()
