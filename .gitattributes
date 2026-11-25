@@ -2,6 +2,7 @@
 web/mlu1/images/** -text
 web/mlu1/commands.jpg -text
 web/mlu2/images/** -text
-# Generated site icons (tools/make_icons.py).
+# Generated site icons and link-preview images (tools/make_icons.py, tools/make_og_images.py).
 web/**/*.png -text
 web/**/*.ico -text
+web/**/og-image.jpg -text

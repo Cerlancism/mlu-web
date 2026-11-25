@@ -9,7 +9,6 @@ Each port plays the same as the original, with the same rules, numbers, screens 
 ## Documentation
 
 - [docs/](docs/README.md): the specification of each port and the bugs it fixes.
-- [tools/](tools/README.md): the local web server and the icon maker.
 
 ## Credits
 

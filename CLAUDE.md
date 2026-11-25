@@ -24,7 +24,7 @@ Before working on a port, read its specification: [docs/mlu1/specifications.md](
 | `docs/mlu1/specifications.md` | The specification of the MLU 1 web port: how the game behaves and how the port is built. It is kept in step with `web/mlu1/`. |
 | `docs/mlu1/fixes.md` | The bugs in the original that the web port fixes, each with what the original did and what the port does instead. |
 | `docs/mlu2/specifications.md`, `docs/mlu2/fixes.md` | The same for MLU 2, kept in step with `web/mlu2/`. |
-| `tools/` | `serve.py`, the local web server, and `make_icons.py`, which makes the site icons from the games' sprites (it needs Pillow). |
+| `tools/` | `serve.py`, the local web server; `make_icons.py`, which makes the site icons from the games' sprites; and `make_og_images.py`, which makes the link-preview images. Both scripts need Pillow. |
 | `LICENSE` | GPL-2.0, the license the Motherload Unlimited project declares on SourceForge (<https://sourceforge.net/projects/motherloadunlim>). |
 
 ## Commands
@@ -39,6 +39,7 @@ Run everything from the repository root. Python is MSYS2's and is not on Git Bas
 - **Remake the site icons:** `python3 -I tools/make_icons.py` builds them from the games' sprites.
   - It writes `favicon.ico` and `apple-touch-icon.png` in `web/`, `web/mlu1/` and `web/mlu2/`.
   - It writes the app icons `icon-192.png`, `icon-512.png`, `icon-maskable-192.png` and `icon-maskable-512.png` in `web/`.
+- **Remake the link-preview images:** `python3 -I tools/make_og_images.py` writes `og-image.jpg` (1200×630) in `web/`, `web/mlu1/` and `web/mlu2/`. They are made from the start pages, title bands and sprites. The pages' `og:image` and `og:url` tags give the published site's full addresses, because link previews need absolute URLs.
 - **Build, lint and tests:** there is no build step, linter or test suite. See "Testing in a browser" below.
 
 ## Running the web port
