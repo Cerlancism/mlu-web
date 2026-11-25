@@ -1,0 +1,181 @@
+/* Touch controls (touch.js): a translucent overlay over the whole page. The pad sits at the
+   bottom right; the item keys, above Ctrl, Shift and Enter, at the bottom left; Space is a wide
+   bar at the bottom centre; Esc sits at the top left, below the menu bar, and the keyboard and
+   full-screen buttons at the top right. Sizes follow the shorter side
+   of the screen, and the edges keep clear of notches and rounded corners. */
+
+.touch {
+  --b: clamp(36px, 9.5vmin, 52px);   /* a key */
+  --pad: clamp(120px, 38vmin, 200px); /* the pad */
+  --gap: clamp(4px, 1.2vmin, 8px);
+  --edge: clamp(6px, 2vmin, 14px);
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  color: rgb(255 255 255 / 88%);
+  font: 600 13px/1 system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+.touch[hidden] { display: none; }
+
+.touch button,
+.touch-pad {
+  pointer-events: auto;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.touch-top,
+.touch-actions,
+.touch-tools {
+  position: absolute;
+  display: flex;
+  gap: var(--gap);
+}
+
+.touch-top {
+  left: calc(var(--edge) + env(safe-area-inset-left, 0px));
+  top: calc(20px + var(--edge) + env(safe-area-inset-top, 0px)); /* clear of the menu bar */
+}
+
+.touch-actions {
+  left: calc(var(--edge) + env(safe-area-inset-left, 0px));
+  bottom: calc(var(--edge) + env(safe-area-inset-bottom, 0px));
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.touch-tools {
+  right: calc(var(--edge) + env(safe-area-inset-right, 0px));
+  top: calc(var(--edge) + env(safe-area-inset-top, 0px));
+}
+
+.touch-row { display: flex; gap: var(--gap); }
+
+.touch-items {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 5), var(--b));
+  gap: var(--gap);
+}
+
+.touch-key,
+.touch-tool {
+  width: var(--b);
+  height: var(--b);
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 45%);
+  border-radius: 10px;
+  background: rgb(255 255 255 / 13%);
+  color: inherit;
+  font: inherit;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 80%);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 35%);
+}
+
+.touch-key {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.touch-key b { font-weight: 700; }
+
+.touch-key small {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: clamp(8px, 2.1vmin, 10px);
+  font-weight: 400;
+  white-space: nowrap;
+  opacity: 0.8;
+}
+
+/* Space, the drill: a wide bar at the bottom centre. */
+.touch-space {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--edge) + env(safe-area-inset-bottom, 0px));
+  width: calc(5 * var(--b));
+  height: calc(0.8 * var(--b));
+  transform: translateX(-50%);
+  flex-direction: row;
+  gap: 8px;
+}
+
+.touch-key.on,
+.touch-tool.on {
+  background: rgb(255 255 255 / 42%);
+  color: #fff;
+}
+
+.touch-tool {
+  display: grid;
+  place-items: center;
+}
+
+.touch-tool svg { width: 60%; height: 60%; }
+
+/* The pad: a ring with the four arrows; a touch anywhere on it picks one of eight directions
+   by its angle from the centre, so the diagonals hold two arrows. */
+.touch-pad {
+  position: absolute;
+  right: calc(var(--edge) + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--edge) + env(safe-area-inset-bottom, 0px));
+  width: var(--pad);
+  height: var(--pad);
+  border: 1px solid rgb(255 255 255 / 40%);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgb(255 255 255 / 6%) 0 19%, rgb(255 255 255 / 25%) 20% 21%, transparent 22%),
+    rgb(255 255 255 / 11%);
+  box-shadow: 0 1px 6px rgb(0 0 0 / 35%);
+}
+
+.touch-arrow {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 34%;
+  height: 34%;
+  border-radius: 50%;
+}
+
+.touch-arrow::before {
+  content: "";
+  border: solid transparent;
+  border-width: 0 calc(var(--pad) * 0.07) calc(var(--pad) * 0.09);
+  border-bottom-color: rgb(255 255 255 / 70%);
+}
+
+.touch-arrow[data-dir="up"] { top: 1%; left: 33%; }
+.touch-arrow[data-dir="right"] { top: 33%; right: 1%; transform: rotate(90deg); }
+.touch-arrow[data-dir="down"] { bottom: 1%; left: 33%; transform: rotate(180deg); }
+.touch-arrow[data-dir="left"] { top: 33%; left: 1%; transform: rotate(-90deg); }
+
+.touch-arrow.on { background: radial-gradient(circle, rgb(255 255 255 / 38%), transparent 70%); }
+.touch-arrow.on::before { border-bottom-color: #fff; }
+
+/* While a message box or the menu is open the game keys do nothing, and show it. */
+html[data-modal] .touch-key,
+html[data-modal] .touch-pad { opacity: 0.35; }
+
+/* The field the device keyboard types into: on the page, so it can take focus, but unseen. */
+.touch-field {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  font-size: 16px; /* smaller text makes some phones zoom in on focus */
+  pointer-events: none;
+}

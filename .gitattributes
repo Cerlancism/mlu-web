@@ -1,0 +1,7 @@
+# Keep the game's images and controls card byte-exact (no CRLF/LF conversion).
+web/mlu1/images/** -text
+web/mlu1/commands.jpg -text
+web/mlu2/images/** -text
+# Generated site icons (tools/make_icons.py).
+web/**/*.png -text
+web/**/*.ico -text

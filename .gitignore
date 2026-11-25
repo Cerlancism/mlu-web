@@ -1,0 +1,7 @@
+# build output and verification scratch
+build/
+# downloaded decompilers, not part of the project
+tools/*.jar
+tools/*.jar.sha1
+Thumbs.db
+.playwright-cli/

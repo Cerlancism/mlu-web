@@ -1,0 +1,210 @@
+/* Page shell for the MLU 1 web port: a 20-pixel menu bar above two panels, as in Motherload.htm:
+   the controls card to the left of the game, on #CC6600 panels with a #AA1111 border.
+
+   Fit to window: the canvas keeps its 800x600 drawing size and is scaled by CSS. The card and
+   the game share one height, --h, which is the largest height at which both fit in the
+   window, under the menu bar, at their own aspect ratios (card 189:600, game 800:600):
+     total width  = 3 borders + h * (189/600 + 800/600)  = 9px + h * 1.64833
+     total height = menu bar + 2 borders + h             = 26px + h
+   That is the crisp mode (the default). In integer mode (?scale=integer), viewport.js overrides
+   --h on <html> with the largest whole multiple of 600 device pixels that fits. Both draw
+   hard-edged pixels. */
+
+:root {
+  --page: #cc6600;
+  --frame: #aa1111;
+  --border: 3px;
+  --menu-h: 20px;
+  --status-bg: rgb(0 0 0 / 70%);
+  --status-fg: #fff;
+  --menu-bg: #eeeeee;
+  --menu-fg: #000;
+  --menu-hi: #b8cfe5;
+  --dlg-bg: #eeeeee;
+  --dlg-border: #6382bf;
+  --h: min(100vh - var(--menu-h) - 6px, (100vw - 9px) / 1.64833);
+}
+
+@supports (height: 100dvh) {
+  :root { --h: min(100dvh - var(--menu-h) - 6px, (100vw - 9px) / 1.64833); }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  background: #000;
+  color: var(--status-fg);
+  font: 14px/1.4 Arial, Helvetica, sans-serif;
+}
+
+.stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.panels { display: flex; }
+
+/* The menu bar, spanning both panels, in the plain look of a desktop window's menu. */
+.menubar {
+  height: var(--menu-h);
+  background: var(--menu-bg);
+  color: var(--menu-fg);
+  font: 12px/20px "Segoe UI", Tahoma, Arial, sans-serif;
+  position: relative;
+  z-index: 2;
+}
+
+.menu { position: relative; display: inline-block; }
+
+.menubar button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  margin: 0;
+  cursor: default;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.menu-title { height: var(--menu-h); padding: 0 8px; }
+
+.menu-title[aria-expanded="true"], .menu-title:hover { background: var(--menu-hi); }
+
+.menu-items {
+  position: absolute;
+  top: var(--menu-h);
+  left: 0;
+  margin: 0;
+  padding: 2px 0;
+  list-style: none;
+  background: var(--menu-bg);
+  border: 1px solid #999;
+  box-shadow: 2px 2px 4px rgb(0 0 0 / 40%);
+  min-width: 150px;
+}
+
+.menu-items button {
+  display: block;
+  width: 100%;
+  padding: 1px 12px 1px 24px;
+  position: relative;
+}
+
+.menu-items button:hover, .menu-items button:focus { background: var(--menu-hi); outline: none; }
+
+.menu-sep { border-top: 1px solid #bbb; margin: 2px 0; }
+
+.menu-items [aria-checked="true"]::before {
+  content: "\2713";
+  position: absolute;
+  left: 8px;
+}
+
+.controls,
+.screen {
+  background: var(--page);
+  border: var(--border) solid var(--frame);
+}
+
+.controls { border-right: 0; }
+
+.controls img {
+  display: block;
+  image-rendering: pixelated;
+  height: var(--h);
+  width: auto;
+}
+
+.screen { position: relative; }
+
+#game {
+  display: block;
+  image-rendering: pixelated;
+  height: var(--h);
+  width: calc(var(--h) * 4 / 3);
+  background: #000;
+  outline: none;
+}
+
+/* Message boxes and the restart question, over the game screen. */
+.dialog {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+
+.dialog[hidden] { display: none; }
+
+.dialog-box {
+  background: var(--dlg-bg);
+  color: #000;
+  border: 1px solid var(--dlg-border);
+  box-shadow: 3px 3px 8px rgb(0 0 0 / 50%);
+  font: 12px/1.35 "Segoe UI", Tahoma, Arial, sans-serif;
+  max-width: 95%;
+  max-height: 95%;
+  overflow: auto;
+}
+
+.dialog-title {
+  background: var(--dlg-border);
+  color: #fff;
+  font-weight: bold;
+  padding: 3px 8px;
+}
+
+.dialog-body { display: flex; gap: 12px; padding: 12px 14px 6px; align-items: flex-start; }
+
+.dialog-icon {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #3b6fc4;
+  color: #fff;
+  font: bold 18px/28px Georgia, serif;
+  text-align: center;
+}
+
+.dialog-icon::before { content: "i"; }
+
+.dialog-text { display: flex; gap: 28px; }
+
+.dialog-text p { margin: 0; white-space: pre; }
+
+.dialog-buttons { display: flex; justify-content: center; gap: 8px; padding: 6px 14px 12px; }
+
+.dialog-buttons button {
+  font: inherit;
+  min-width: 64px;
+  padding: 2px 10px;
+}
+
+.status {
+  position: absolute;
+  inset: auto 0 0 0;
+  margin: 0;
+  padding: 4px 8px;
+  background: var(--status-bg);
+  font-size: 12px;
+  z-index: 3;
+}
+
+.status:empty { display: none; }
+.status.warn {
+  background: rgb(170 17 17 / 90%);
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+}

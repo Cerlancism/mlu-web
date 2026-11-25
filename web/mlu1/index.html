@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Motherload Unlimited: play in your browser</title>
+  <meta name="description" content="Play Motherload Unlimited 3.1 (Shaken Snowglobe Edition), the fan-made Mars mining game by alexxz4, in your web browser. Dig for minerals, upgrade your pod and restart the planet's core.">
+  <meta name="theme-color" content="#cc6600">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="MLU web">
+  <meta property="og:title" content="Motherload Unlimited">
+  <meta property="og:description" content="The fan-made Mars mining game by alexxz4, version 3.1 (Shaken Snowglobe Edition), playable in your web browser.">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="../site.webmanifest">
+  <link rel="stylesheet" href="launcher.css">
+  <script type="module" src="launcher.js"></script>
+</head>
+<body>
+  <div class="page">
+    <nav class="top"><a href="../">&larr; All games</a></nav>
+
+    <header class="hero">
+      <h1 class="logo"><span class="visually-hidden">Motherload Unlimited</span></h1>
+      <a class="play" href="play.html">Play</a>
+    </header>
+
+    <main>
+      <section class="panel" aria-labelledby="saves-title">
+        <h2 id="saves-title">Saved games</h2>
+        <p class="hint">Saved games are kept in this browser. Export one to keep a copy or to move it to another browser; the file is the game's own <code>.ml</code> save file, so files from the original game can be imported too.</p>
+        <table class="saves">
+          <tbody id="save-rows"></tbody>
+        </table>
+        <p class="empty" id="saves-empty" hidden></p>
+        <div class="actions">
+          <label class="button">Import save files&hellip;<input type="file" id="import" accept=".ml" multiple hidden></label>
+        </div>
+        <p class="message" id="saves-msg" role="status"></p>
+      </section>
+
+      <section class="panel" aria-labelledby="snaps-title">
+        <h2 id="snaps-title">Snapshots</h2>
+        <p class="hint">A snapshot keeps a whole game just as it was, taken with Take Snapshot in the game's Game menu while in a base or on the pause screen (M). Resume carries on from that moment; the saved games are not touched. Export one to keep a copy or to move it to another browser.</p>
+        <table class="saves snaps">
+          <tbody id="snap-rows"></tbody>
+        </table>
+        <p class="empty" id="snaps-empty" hidden></p>
+        <div class="actions">
+          <label class="button">Import snapshots&hellip;<input type="file" id="import-snaps" accept=".json,application/json" multiple hidden></label>
+        </div>
+        <p class="message" id="snaps-msg" role="status"></p>
+      </section>
+
+      <section class="panel" aria-labelledby="options-title">
+        <h2 id="options-title">Options</h2>
+        <fieldset>
+          <legend>Scaling</legend>
+          <label><input type="radio" name="scale" value="crisp"> Fill the window <small>The largest size that fits.</small></label>
+          <label><input type="radio" name="scale" value="integer"> Whole-number pixels (Integer Scaling) <small>Every original pixel the same square size; can leave a border.</small></label>
+        </fieldset>
+        <fieldset>
+          <legend>Touch controls</legend>
+          <label><input type="radio" name="touch" value="auto"> Automatic <small>On phones and tablets, and once the screen is touched.</small></label>
+          <label><input type="radio" name="touch" value="on"> Always</label>
+          <label><input type="radio" name="touch" value="off"> Never</label>
+        </fieldset>
+        <fieldset>
+          <legend>Sound</legend>
+          <label><input type="checkbox" id="music"> Music</label>
+          <label><input type="checkbox" id="sounds"> Sound effects</label>
+        </fieldset>
+        <p class="message" id="options-msg" role="status"></p>
+      </section>
+    </main>
+
+    <footer>
+      <p>Motherload Unlimited, version 3.1, January 1, 2008, by alexxz4, graphics by SethNess: a fan remake of the Flash game Motherload, ported from Java to the web.</p>
+      <ul class="links" aria-label="Project links">
+        <li><a href="https://github.com/Cerlancism/mlu-web" target="_blank" rel="noopener">Source on GitHub</a></li>
+        <li><a href="https://github.com/Cerlancism/mlu-web/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation</a></li>
+      </ul>
+    </footer>
+  </div>
+</body>
+</html>

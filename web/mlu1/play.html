@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <title>Motherload Unlimited</title>
+  <meta name="description" content="Play Motherload Unlimited 3.1 in your web browser.">
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#cc6600">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="../site.webmanifest">
+  <link rel="stylesheet" href="play.css">
+  <link rel="stylesheet" href="touch.css">
+  <script type="module" src="play.js"></script>
+</head>
+<body>
+  <main class="stage">
+    <div class="window">
+      <nav class="menubar" aria-label="Game menu">
+        <div class="menu" id="menu">
+          <button type="button" class="menu-title" id="menu-title" aria-haspopup="menu" aria-expanded="false">Game</button>
+          <ul class="menu-items" id="menu-items" role="menu" hidden>
+            <li role="none"><button type="button" role="menuitem" data-item="restart">Restart</button></li>
+            <li role="none"><button type="button" role="menuitem" data-item="snapshot">Take Snapshot</button></li>
+            <li role="none"><button type="button" role="menuitem" data-item="game">Game Controls</button></li>
+            <li role="none"><button type="button" role="menuitem" data-item="shops">Shop Controls</button></li>
+            <li role="none"><button type="button" role="menuitemcheckbox" aria-checked="false" data-item="music">Music</button></li>
+            <li role="none"><button type="button" role="menuitemcheckbox" aria-checked="false" data-item="sounds">Sounds</button></li>
+            <li role="none"><button type="button" role="menuitem" data-item="help">Help</button></li>
+            <li role="separator" class="menu-sep"></li>
+            <li role="none"><button type="button" role="menuitem" data-item="exit">Exit</button></li>
+          </ul>
+        </div>
+      </nav>
+      <div class="panels">
+        <aside class="controls">
+          <img src="commands.jpg"
+               width="189" height="600" alt="List of game controls">
+        </aside>
+        <div class="screen">
+          <canvas id="game" width="800" height="600" tabindex="0" aria-label="Motherload Unlimited game screen"></canvas>
+          <div class="dialog" id="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" hidden>
+            <div class="dialog-box">
+              <div class="dialog-title" id="dialog-title"></div>
+              <div class="dialog-body">
+                <span class="dialog-icon" aria-hidden="true"></span>
+                <div class="dialog-text" id="dialog-text"></div>
+              </div>
+              <div class="dialog-buttons" id="dialog-buttons"></div>
+            </div>
+          </div>
+          <p class="status" id="status" role="status">Loading…</p>
+        </div>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

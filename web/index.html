@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Motherload Unlimited 1 and 2: play in your browser</title>
+  <meta name="description" content="Play Motherload Unlimited and its sequel MLU2: Crematoria, the fan-made mining games by alexxz4, in your web browser. No download or plug-in needed.">
+  <meta name="theme-color" content="#1b1410">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="MLU web">
+  <meta property="og:title" content="Motherload Unlimited 1 and 2">
+  <meta property="og:description" content="The fan-made Motherload mining games by alexxz4, playable in your web browser.">
+  <meta name="twitter:card" content="summary">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="stylesheet" href="index.css">
+  <script>
+    // The site's service worker keeps the pages working offline (see sw.js).
+    navigator.serviceWorker?.register('sw.js').catch(() => {});
+    // Browsers that can install the site as an app (Chromium-based ones) offer it with this event;
+    // the offer is kept for the Install button instead of the browser's own banner.
+    window.installOffer = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      window.installOffer = e;
+      document.dispatchEvent(new Event('installoffer'));
+    });
+  </script>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <h1>Motherload Unlimited</h1>
+      <p>The fan-made mining games by alexxz4, in your browser.</p>
+    </header>
+
+    <ul class="games">
+      <li>
+        <a class="game mlu1" href="mlu1/">
+          <span class="logo" role="img" aria-label="Motherload Unlimited title"></span>
+          <span class="name">MLU 1</span>
+          <span class="about">Version 3.1, Shaken Snowglobe Edition (2008). Dig deep under Mars and restart the planet's core.</span>
+        </a>
+      </li>
+      <li>
+        <a class="game mlu2" href="mlu2/">
+          <span class="logo" role="img" aria-label="Motherload Unlimited Crematoria Edition title"></span>
+          <span class="name">MLU 2: Crematoria</span>
+          <span class="about">Summer 2009 release. Mine eastward across the scorching planet Crematoria.</span>
+        </a>
+      </li>
+    </ul>
+
+    <section class="install" id="install" hidden>
+      <button type="button" id="install-button">Install as an app (PWA)</button>
+      <p>Both games in one app on your home screen or in your app list, working offline too.</p>
+    </section>
+    <p class="install-hint" id="install-ios" hidden>To install both games as an app on an iPhone or iPad, tap Share, then Add to Home Screen.</p>
+
+    <footer>
+      <p>Fan remakes of the Flash game Motherload, ported from Java to the web. Saved games stay in your browser.</p>
+      <ul class="links" aria-label="Project links">
+        <li><a href="https://github.com/Cerlancism/mlu-web" target="_blank" rel="noopener">Source on GitHub</a></li>
+        <li><a href="https://github.com/Cerlancism/mlu-web/blob/main/docs/README.md" target="_blank" rel="noopener">Documentation</a></li>
+      </ul>
+    </footer>
+  </main>
+  <script>
+    // The Install button: shown while the browser offers to install the site and it is not
+    // running as the installed app already. Safari on iPhone and iPad has no offer: it gets a hint.
+    (() => {
+      const box = document.getElementById('install');
+      const installed = () => matchMedia('(display-mode: standalone)').matches
+        || navigator.standalone === true;
+      const update = () => { box.hidden = installed() || !window.installOffer; };
+      document.addEventListener('installoffer', update);
+      window.addEventListener('appinstalled', () => {
+        window.installOffer = null;
+        update();
+      });
+      document.getElementById('install-button').addEventListener('click', async () => {
+        const offer = window.installOffer;
+        if (!offer) return;
+        window.installOffer = null; // an offer can be shown once
+        offer.prompt();
+        await offer.userChoice.catch(() => {});
+        update();
+      });
+      update();
+      const apple = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      document.getElementById('install-ios').hidden = !apple || installed();
+    })();
+  </script>
+</body>
+</html>
