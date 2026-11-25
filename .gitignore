@@ -5,3 +5,4 @@ tools/*.jar
 tools/*.jar.sha1
 Thumbs.db
 .playwright-cli/
+__pycache__/
