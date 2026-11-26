@@ -3,9 +3,10 @@
 // Usage: node tools/autopilot_sim.mjs [--seed n] [--games n] [--level 1|2|3] [--ticks n] [--log n]
 //
 // Each game starts a new map, switches the autopilot on and runs until the game is won or lost,
-// or for at most --ticks ticks (default 6,000,000, about 28 hours of game time). The random
-// numbers are seeded, so a game can be replayed. It prints progress every --log ticks (default
-// 200,000) and a line per game: how it ended, the time, the deepest row, the money, the score.
+// the autopilot stalls waiting in the base, or for at most --ticks ticks (default 6,000,000,
+// about 28 hours of game time). The random numbers are seeded, so a game can be replayed. It
+// prints progress every --log ticks (default 200,000) and a line per game: how it ended, the
+// time, the deepest row, the money, the score.
 
 import { pathToFileURL } from 'node:url';
 import { resolve, dirname } from 'node:path';
@@ -59,6 +60,7 @@ function play(seed) {
   let deepest = 0;
   let end = 'time limit';
   let ticks = 0;
+  let waited = 0;
   const events = [];
   const seen = new Set();
   const note = (key, text) => {
@@ -76,10 +78,17 @@ function play(seed) {
     }
     if (s.trans && s.transy === 20000) { end = 'won'; break; }
     if (s.startpage) { end = 'back on the start page'; break; }
+    waited = ap.status.startsWith('Waiting in the base') ? waited + 1 : 0;
+    if (waited > 20000) { end = `stalled in the base at ${usd(s.money)}`; break; }
     for (const [k, t] of [['engine', 'engine'], ['radiator', 'radiator'], ['cargobay', 'cargo'],
       ['hullx', 'hull'], ['drillx', 'drill']]) {
       note(`${k}${s[k]}`, `${t} tier ${s[k]}`);
     }
+    note(`bat${s.batx}`, `battery tier ${s.batx}`);
+    for (const g of ['coalb', 'petrolr', 'gasb', 'jet', 'tel1', 'tel2', 'iceb']) {
+      if (s[g] > 0) note(g, `first ${g}`);
+    }
+    for (const m of [1e5, 1e6, 1e7, 1e8]) if (s.money >= m) note(`m${m}`, `${usd(m)}`);
     if (s.explorer) note('explorer', 'super-ship');
     if (s.iposy >= 3000 && !s.menu) note('mantle', `mantle, nux ${s.nux}, ice9 ${s.ice9.toFixed(0)}`);
     if (ticks % logEvery === 0 && ticks > 0) {
