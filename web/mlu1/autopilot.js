@@ -356,7 +356,8 @@ class Autopilot {
     } else if (++this.stuck > 240) {
       // No progress for four seconds: the plan is wrong. Avoid the next tile for a while.
       this.stuck = 0;
-      const next = this.path?.[this.at];
+      // The step it was trying, even if the route has been dropped since.
+      const next = this.path?.[this.at] ?? this.lastNext;
       if (next) this.avoid.set(next.y * MAP_W + next.x, this.tickNo + 3000);
       this.path = null;
     }
@@ -1063,6 +1064,7 @@ class Autopilot {
       }
     }
     const next = P[this.at];
+    this.lastNext = next;
     const tv = m[next.x][next.y];
     // Below the radiator's limit a fall overheats without Ice9: checked again before each one,
     // since the Ice9 may have run down since the route was planned.
@@ -1153,6 +1155,14 @@ class Autopilot {
     // Check again with the state as it is now.
     const down = t.how === DIG_DOWN;
     const v = m[t.x][t.y];
+    // Rock in the shaft, too hard to dig or not: blasted away with TNT, then the way down is
+    // planned again.
+    if (down && t.x === SHAFT_X && isHard(v) && s.tnt > 0 && !s.expls && this.blastOk(s, x, y)) {
+      this.tap(s, K.X);
+      this.status = 'Blasting rock out of the shaft with TNT';
+      this.path = null;
+      return;
+    }
     const c = this.digCost(s, t.x, t.y, v, down, 1 / Math.max(0.05, this.income));
     if (c === Infinity || (!this.goal.startsWith('Going home') && this.homeReason(s, x, y))) {
       this.path = null;
@@ -1166,13 +1176,6 @@ class Autopilot {
       if (!s.ibomb && s.iceb > 0 && s.battery + s.fuel >= 100) this.tap(s, K.D2);
       this.status = 'Freezing the magma with an ice bomb';
       if (!s.ibomb && s.iceb === 0) this.path = null;
-      return;
-    }
-    // Rock in the shaft: blasted away with TNT, then the way down is planned again.
-    if (down && t.x === SHAFT_X && isHard(v) && s.tnt > 0 && !s.expls && this.blastOk(s, x, y)) {
-      this.tap(s, K.X);
-      this.status = 'Blasting rock out of the shaft with TNT';
-      this.path = null;
       return;
     }
     if (this.digWait > 0) {
