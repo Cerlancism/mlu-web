@@ -28,7 +28,7 @@ export function loadSwim(s) {
 
 // Collision boxes of the three rock pictures, in hundredths of the rock's scale:
 // [left, right, top, bottom] relative to the rock's top-left corner.
-const ROCK_BOXES = {
+export const ROCK_BOXES = {
   1: [[27, 198, 6, 128], [0, 267, 128, 247], [32, 214, 247, 362]],
   2: [[16, 185, 15, 113], [2, 236, 113, 189], [27, 232, 202, 292]],
   3: [[13, 226, 17, 205], [226, 392, 34, 249], [94, 383, 205, 330]],

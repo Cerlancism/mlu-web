@@ -41,11 +41,28 @@ This document specifies the web version of Motherload Unlimited 1, "Version 3.1 
   | Shop Controls | A message box titled "Controls" listing the base keys: arrows to choose, Space to buy, fix or refill, Enter for the next shop, Esc to leave. |
   | Music | A check box showing the game's music switch, the one on the start page and in the inventory. Ticking it turns the switch on and plays the tune of the current screen (title tune on the start page, shop tune in the base, in-game tune in play and the mantle); clearing it turns the switch off and stops the music. |
   | Sounds | A check box showing the game's sound switch, which it sets as the inventory's sound switch does, the lava sound included (section 5, "Mouse"). |
+  | Autopilot | A check box that switches the autopilot on and off, at any time (below, "Autopilot"). |
   | Help | A message box titled "About" with the game's name, version and credits and a short description of the game. |
   | Exit | Returns to the launcher, keeping the game page's URL parameters. During a game it first asks "Are you sure you want to quit this game?" with Yes, No and Cancel, and leaves only on Yes; on the start page it leaves at once. |
 
   - Message boxes and the question appear over the game screen. The game keeps running behind them, but keys go to the box until it is closed. Enter, Space or Esc closes a message box; Esc answers the question as Cancel.
   - Keys held down when the menu or a box opens are treated as released.
+- **Autopilot:** a virtual player that plays the game through to the victory. It follows the strategy of the guide to playing well ([guide.md](guide.md)).
+  - **Keys only:** before each tick it presses and releases the same keys a player would, so the game's rules are unchanged. It can see the whole game state, the map included, and it keeps its plans apart from the game, so snapshots and saves never hold them.
+  - **The player's keys:** while it is on, the player's keys, touches and clicks do not reach the game, except on the start page, where they still type a name and start or load a game. Keys held when it is switched on or off are released.
+  - **Indicator:** while it is on, the right of the menu bar shows "Autopilot:" and what it is doing, such as "Digging for minerals at 2,150 ft".
+  - **Where it waits:** on the start page it waits for a game to be started or loaded. After a game over it waits there too. It stops at the victory transmission and leaves it for the player to close, because closing it ends the game.
+  - **Transmissions:** it closes each other transmission two seconds after it appears.
+  - **Choosing what to dig:** it plans routes over the map, by flying, falling, driving and digging. It counts each in ticks, money and energy, and goes for the tile worth most per tick, counting the climb home. It digs only where it is safe: within the engine's power and the radiator's limit, the hull's and the shielding's limits, never beside magma, and only with the fuel for the way there and back.
+  - **Moving:** it presses Up during long falls, so every landing is safe. In the air it holds its height by pressing Up in short bursts. It uses the jet booster for long climbs, and turns it off near rock.
+  - **Going home:** it heads home when the cargo bay is full, the fuel is down to the climb home, the drill or hull is worn, or nothing worth digging is in reach. It uses a teleporter when it has one.
+  - **In the base:** it sells the cargo and buys, one key at a time:
+    - the upgrade that lets it work deepest per dollar, or one that stops trips ending early;
+    - teleporters, and later repair kits and other gadgets;
+    - then it refuels, repairs, saves the game under its name and leaves.
+
+    It always keeps money for two refills.
+  - **The super-ship and the mantle:** it buys the super-ship once the materials and $100,000,000 are in. Then it collects Martian bombs, lava for the battery and Ice9 until it has what the dive needs, and dives into the mantle. There it dodges the rocks and sets off each detonation within 150 ft of its target depth.
 - **Game screen:** one canvas whose drawing surface is always 800×600. The game draws in those coordinates whatever size the canvas is shown at, and mouse positions are converted from screen size back to 800×600 before the game sees them. The canvas takes keyboard focus when the page loads and when it is clicked.
 - **Touch controls:** a translucent overlay over the game page, for phones and tablets. It is shown on screens whose main pointer is touch, and on any screen from its first touch; the launcher's touch option can instead show it always or never. Its keys send the same keys the keyboard does, so the game cannot tell them apart:
   - **Pad**, at the bottom right: a round eight-way pad for the arrow keys. A touch picks one of eight directions by its angle from the centre, so a diagonal holds two arrows; a touch near the centre holds none. Sliding the finger to another direction releases only the arrow it no longer holds, so Up stays held from up-left to up-right.
@@ -685,7 +702,9 @@ All modules are JavaScript modules in the same folder as the page. The game logi
 | Module | Responsibility |
 |---|---|
 | launcher | The launcher page: the Play link, listing, renaming, exporting, importing and deleting saves and snapshots, resuming snapshots, and the options. |
-| play | Entry of the game page: sets up the page, its menu bar and message boxes, loads assets, wires input, audio and storage, runs one tick (the play or mantle update, then the drawing-time updates), takes snapshots and resumes the one named in the URL, and starts the clock. Offers a test hook that runs ticks by hand. |
+| play | Entry of the game page: sets up the page, its menu bar and message boxes, loads assets, wires input, audio, storage and the autopilot, takes snapshots and resumes the one named in the URL, and starts the clock. Offers a test hook that runs ticks by hand. |
+| game | One tick, with no page code: the autopilot's keys, then the play or mantle update, then the drawing-time updates. The game page and the test harness both run it. |
+| autopilot | The autopilot: route planning over the map, choosing what to dig, pressing the keys for each move, shopping in the base, and the mantle's dive and rock dodging. |
 | viewport | Fits the game to the window, with integer and crisp scaling, and converts mouse positions. |
 | clock | The display-driven loop: 60 ticks a second, a drawing every refresh with the interpolation fraction. |
 | jmath | Java number rules: truncating division and casts, rounding, 32-bit and 8-bit wrap-around, random numbers. |

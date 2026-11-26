@@ -15,9 +15,8 @@ import {
 } from './snapshots.js';
 import { installLeaveGuard } from './guard.js';
 import { createState } from './state.js';
-import { tickUnderground } from './pod.js';
-import { tickMantle } from './mantle.js';
-import { stepEffects } from './effects.js';
+import { step } from './game.js';
+import { createAutopilot } from './autopilot.js';
 import { keyDown, keyUp, mouseClick, menuAction, resumed } from './controls.js';
 import { render, snapshot } from './render.js';
 import { MENU_TEXT, TOUCH_KEYS } from './data.js';
@@ -137,12 +136,28 @@ const menu = {
   items: [...document.querySelectorAll('#menu-items button')],
 };
 
-/** The check boxes show the game's music and sound switches, the ones on the start page. */
+// The autopilot, a virtual player that the menu switches on and off (see autopilot.js).
+const autopilot = createAutopilot();
+const autopilotBadge = document.getElementById('autopilot');
+
+/** Shows the autopilot's state in the menu bar while it is on. */
+function showAutopilot() {
+  autopilotBadge.hidden = !autopilot.on;
+  if (autopilot.on && autopilotBadge.textContent !== autopilot.status) {
+    autopilotBadge.textContent = autopilot.status;
+  }
+}
+
+/**
+ * The check boxes show the game's music and sound switches, the ones on the start page, and
+ * whether the autopilot is on.
+ */
 function openMenu(s) {
   releaseKeys();
   for (const b of menu.items) {
     const item = b.dataset.item;
     if (item === 'music' || item === 'sounds') b.setAttribute('aria-checked', String(s[item]));
+    if (item === 'autopilot') b.setAttribute('aria-checked', String(autopilot.on));
   }
   menu.list.hidden = false;
   menu.title.setAttribute('aria-expanded', 'true');
@@ -206,6 +221,11 @@ async function runMenuItem(s, item) {
     if (answer === 'Yes') menuAction(s, 'restart');
   } else if (item === 'music' || item === 'sounds') {
     menuAction(s, item, !s[item]);
+  } else if (item === 'autopilot') {
+    // The player's keys are let go, so that neither holds a key the other cannot release.
+    releaseKeys();
+    autopilot.setOn(s, !autopilot.on);
+    showAutopilot();
   } else if (item === 'snapshot') {
     takeSnapshot(s);
   } else if (item === 'exit') {
@@ -272,14 +292,6 @@ window.addEventListener('keyup', (e) => {
 
 // ---- Start-up -------------------------------------------------------------------------------
 
-/** One game tick: the play or mantle update, then what the original updated while drawing. */
-export function tick(s) {
-  s.fxLast = {};
-  if (!s.menu && s.iposy <= 2999) tickUnderground(s);
-  else if (!s.menu && s.iposy >= 3000) tickMantle(s);
-  stepEffects(s);
-}
-
 async function main() {
   status.textContent = 'Loading images…';
   const assets = await loadAssets((done, total) => {
@@ -306,13 +318,16 @@ async function main() {
   const keepSettings = settingsKeeper(s);
   window.addEventListener('pagehide', keepSettings);
   let prev = null;
+  let ticks = 0;
 
   unlockSound = () => sfx.unlock();
   installMenu(s);
+  // While the autopilot plays, the player's keys and clicks do not reach the game; on the start
+  // page they do, so that a game can be started for it.
   const input = installInput(canvas, {
-    keyDown: (code) => keyDown(s, code),
-    keyUp: (code) => keyUp(s, code),
-    click: (x, y) => mouseClick(s, x, y),
+    keyDown: (code) => { if (!autopilot.driving(s)) keyDown(s, code); },
+    keyUp: (code) => { if (!autopilot.driving(s)) keyUp(s, code); },
+    click: (x, y) => { if (!autopilot.driving(s)) mouseClick(s, x, y); },
     gesture: () => sfx.unlock(),
   });
   const touch = installTouch({
@@ -333,19 +348,21 @@ async function main() {
   const clock = createClock({
     tick: () => {
       prev = snapshot(s);
-      tick(s);
+      step(s, autopilot);
       keepSettings();
+      if (++ticks % 15 === 0) showAutopilot();
     },
     render: (alpha) => render(g, s, assets, alpha, prev),
   });
 
-  // For testing from the console: step(n) runs n ticks and draws, even while the page is hidden.
+  // For testing from the console: step(n) runs n ticks (with the autopilot, if on) and draws, even
+  // while the page is hidden.
   window.mlu = {
-    state: s, clock, assets, snapshots, dialog,
+    state: s, clock, assets, snapshots, dialog, autopilot,
     step(n = 1) {
       for (let i = 0; i < n; i++) {
         prev = snapshot(s);
-        tick(s);
+        step(s, autopilot);
       }
       render(g, s, assets, 1, prev);
     },

@@ -102,6 +102,19 @@ html, body {
 
 .menu-sep { border-top: 1px solid #bbb; margin: 2px 0; }
 
+/* While the autopilot plays: its name and what it is doing, at the right of the menu bar. */
+.autopilot {
+  position: absolute;
+  right: 8px;
+  top: 0;
+  max-width: calc(100% - 80px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.autopilot::before { content: "Autopilot: "; font-weight: bold; }
+
 .menu-items [aria-checked="true"]::before {
   content: "\2713";
   position: absolute;

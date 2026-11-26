@@ -23,8 +23,9 @@ Before working on a port, read its specification: [docs/mlu1/specifications.md](
 | `docs/README.md` | The landing page for the documentation. The README and the footers of the site's pages link to it. |
 | `docs/mlu1/specifications.md` | The specification of the MLU 1 web port: how the game behaves and how the port is built. It is kept in step with `web/mlu1/`. |
 | `docs/mlu1/fixes.md` | The bugs in the original that the web port fixes, each with what the original did and what the port does instead. |
+| `docs/mlu1/guide.md` | How to play MLU 1 well, stage by stage. The MLU 1 autopilot (`web/mlu1/autopilot.js`) follows it, so change both together. |
 | `docs/mlu2/specifications.md`, `docs/mlu2/fixes.md` | The same for MLU 2, kept in step with `web/mlu2/`. |
-| `tools/` | `serve.py`, the local web server; `make_icons.py`, which makes the site icons from the games' sprites; and `make_og_images.py`, which makes the link-preview images. Both scripts need Pillow. |
+| `tools/` | `serve.py`, the local web server; `make_icons.py`, which makes the site icons from the games' sprites; `make_og_images.py`, which makes the link-preview images (both need Pillow); and `autopilot_sim.mjs`, which tests the MLU 1 autopilot without a browser. |
 | `LICENSE` | GPL-2.0, the license the Motherload Unlimited project declares on SourceForge (<https://sourceforge.net/projects/motherloadunlim>). |
 
 ## Commands
@@ -40,6 +41,11 @@ Run everything from the repository root. Python is MSYS2's and is not on Git Bas
   - It writes `favicon.ico` and `apple-touch-icon.png` in `web/`, `web/mlu1/` and `web/mlu2/`.
   - It writes the app icons `icon-192.png`, `icon-512.png`, `icon-maskable-192.png` and `icon-maskable-512.png` in `web/`.
 - **Remake the link-preview images:** `python3 -I tools/make_og_images.py` writes `og-image.jpg` (1200×630) in `web/`, `web/mlu1/` and `web/mlu2/`. They are made from the start pages, title bands and sprites. The pages' `og:image` and `og:url` tags give the published site's full addresses, because link previews need absolute URLs.
+- **Test the MLU 1 autopilot:** `node tools/autopilot_sim.mjs --seed 1 --games 3 --ticks 5000000` plays whole games with the autopilot in Node, without a browser.
+  - The random numbers are seeded, so a game can be replayed.
+  - It prints progress, then how each game ended, with its time, deepest row, money and score.
+  - It runs the game modules themselves, through `web/mlu1/game.js`, so keep those free of page code.
+  - Node is at `/c/Program Files/nodejs/node`.
 - **Build, lint and tests:** there is no build step, linter or test suite. See "Testing in a browser" below.
 
 ## Running the web port
