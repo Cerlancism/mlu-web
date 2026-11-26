@@ -81,6 +81,7 @@ Run everything from the repository root. Python is MSYS2's and is not on Git Bas
   - It describes behaviour and design in prose and tables, with no code samples and no references to source files or line numbers. A reader should be able to rebuild the game from it.
   - Update the specification and `fixes.md` in the same change as the port. `fixes.md` follows the same rules as the specification.
   - The specification describes the web version's behaviour as it is. It does not say where that differs from the original, and it does not mention `fixes.md`.
+- **Updated stamp:** each launcher's footer shows when its port last changed, as `Updated YYYY-MM-DD-HHMM` (UTC+8), with an ISO `datetime` on its `<time>` element. When a change to a port (`web/mlu1/` or `web/mlu2/`) is committed, set that port's stamp to the commit's time, in the same commit.
 - **README:** `README.md` stays a minimal public landing page: what the project is, the play link, links to the docs, credits and the license.
 - **Assets:** asset file names are case-sensitive in URLs, so URLs must match them exactly.
   - Several MLU 1 names end in `.PNG`, and one contains a space (`dark matter.png`).

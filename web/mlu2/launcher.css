@@ -200,6 +200,8 @@ footer .links a {
 
 footer .links a:hover, footer .links a:focus-visible { text-decoration: underline; }
 
+footer .updated { margin-top: 6px; opacity: 0.8; }
+
 @media (max-width: 520px) {
   .saves tr { display: grid; grid-template-columns: 1fr auto; }
   .snaps tr { grid-template-columns: 1fr; }
