@@ -439,9 +439,16 @@ class Autopilot {
     return { engine, heat, tank, open, floor: Math.max(floor, 6) };
   }
 
+  /**
+   * Whether the super-ship has what the dive needs. The way down drains Ice9 in the magma, so it
+   * sets off with a margin, and once on its way keeps going while most of the margin is left.
+   */
   diveReady(s) {
-    return s.explorer && s.nux >= DIVE_NUX && s.ice9 >= DIVE_ICE9
+    const ice = this.diving ? DIVE_ICE9 - 60 : DIVE_ICE9 + 100;
+    const ready = s.explorer && s.nux >= DIVE_NUX && s.ice9 >= ice
       && s.fuel + s.battery >= DIVE_ENERGY;
+    if (!ready) this.diving = false;
+    return ready;
   }
 
   /** Energy needed to get home from (x, y), with a margin. */
@@ -603,6 +610,7 @@ class Autopilot {
         this.path = this.route(plan, plan.found);
         this.at = 1;
         this.goal = 'Diving into the mantle';
+        this.diving = true;
         this.status = this.goal;
         return;
       }
@@ -696,7 +704,7 @@ class Autopilot {
     if (v >= 1 && v <= 41 && (v < 28 || v > 31)) return idiv(mineralPrice(v) * s.money_factor, 10);
     if (v in MEGA) return s[MEGA[v]] < 8 ? 5e7 : 1;
     if (v === ICE9) {
-      if (s.explorer) return s.nux >= DIVE_NUX && s.ice9 < DIVE_ICE9 + 40 ? 3e6 : 0;
+      if (s.explorer) return s.nux >= DIVE_NUX && s.ice9 < DIVE_ICE9 + 140 ? 3e6 : 0;
       // With the Mega cooling system, Ice9 is what opens the rows below its limit, and while
       // any is left the pod cannot overheat.
       if (s.radiator === 8) return s.ice9 < ICE9_STOCK ? 5e5 : 2e4;
@@ -843,7 +851,9 @@ class Autopilot {
       for (let yy = ty + 1; yy < m[tx].length; yy++) {
         const v = m[tx][yy];
         if (!isOpen(v)) break;
-        if ((v === MAGMA && !ex) || yy >= 3000 || !this.heatOk(s, yy, 0, 200)) { ok = false; break; }
+        // Into the mantle only for the dive.
+        if (yy >= 3000) { ok = ex && this.diveReady(s); break; }
+        if ((v === MAGMA && !ex) || !this.heatOk(s, yy, 0, 200)) { ok = false; break; }
       }
       fallOk[i] = ok ? 1 : 2;
       return ok;
@@ -963,6 +973,8 @@ class Autopilot {
     if (y >= 3000) return s.explorer && this.diveReady(s) ? 25 : Infinity;
     if (s.explorer) {
       if (s.fuel + s.battery < 40) return Infinity;
+      // The super-ship overheats too, digging down without Ice9 below the cooling's limit.
+      if (down && !this.heatOk(s, y, 0, 60)) return Infinity;
       const w = mineralWeight(v);
       if (w > 0 && w + s.cargo <= s.cargomax && s.rx + mineralRx(v) > s.biomax) return Infinity;
       return 26;
@@ -1276,7 +1288,9 @@ class Autopilot {
       return { kind: 'buy', tab: 3, row: G.ship, label: 'Buying the super-ship' };
     }
     // Money for two refills is always kept back.
-    const reserve = repairsCost(s) + 5 * s.fuelmax + 50 + (s.money > 2e6 ? 2e5 : 0);
+    // Once the super-ship's price is in, it is kept for the super-ship.
+    const reserve = repairsCost(s) + 5 * s.fuelmax + 50 + (s.money > 2e6 ? 2e5 : 0)
+      + (s.money >= 1e8 + 2e6 && !s.explorer ? 1e8 : 0);
     const spare = s.money - reserve;
     const lim = this.limits(s);
     const up = this.nextUpgrade(s, spare);
@@ -1495,7 +1509,8 @@ class Autopilot {
     }
     this.keys(s, keys);
     const left = this.detonationsLeft(s);
-    this.status = left ? `Diving: ${left} detonations to go` : 'Diving: the core restarts';
+    this.status = left > 1 ? `Diving: ${left} detonations to go`
+      : left ? 'Diving: 1 detonation to go' : 'Diving: the core restarts';
   }
 
   detonationsLeft(s) {
