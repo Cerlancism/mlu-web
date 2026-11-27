@@ -95,4 +95,5 @@ Run everything from the repository root. Python is MSYS2's and is not on Git Bas
   - `mlu.state` is the game state.
   - `mlu.clock` is the clock.
   - `mlu.step(n)` runs n ticks and draws a frame.
+  - `mlu.wake.held()` tells whether the screen wake lock is held: during a game on a visible page, not on the start page.
 - **Hidden windows:** browsers stop the animation loop while the window is hidden or fully covered. Use `mlu.step` to advance the game then; screenshots still work.

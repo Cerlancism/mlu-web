@@ -231,6 +231,10 @@ Some key combinations belong to the browser and cannot be taken by a page. The o
 - **Leave confirmation:** while a game is in progress (anywhere but the start page), closing, reloading or leaving the page first shows the browser's own "Leave site?" confirmation. The start page asks nothing, and neither does the menu's Exit after its own question. The browser decides the wording, and shows it only after the player has pressed a key or clicked on the page.
 - **Warning:** if Ctrl was held when the page was about to close, or if the browser passes Ctrl+W to the page during a game, the status line shows in red, for 8 seconds: "Ctrl+W closes the browser tab. Release Ctrl (tractor beam) before pressing W (Teleporter 2)."
 
+### Keeping the screen on
+
+While a game is in progress (anywhere but the start page) and the page is visible, the page asks the browser to keep the screen on, with its screen wake lock, so that the display does not dim or lock during play. The browser drops the lock whenever the page is hidden; the page asks for it again within half a second of showing. It lets the lock go on the start page. Where the browser has no screen wake lock, or refuses one (on battery saver, say), the screen dims as usual, and the page asks again every 10 seconds.
+
 ## 6. World
 
 ### The map
@@ -1172,6 +1176,7 @@ All modules are JavaScript modules in the same folder as the page. The game logi
 | settings | Keeping the Music and Sounds switches, the scaling mode and the touch controls option in the browser's local storage. |
 | audio | Sound clips, loops, music and the browser's audio unlock. |
 | guard | The leave confirmation and the Ctrl+W warning. |
+| wake | Keeping the screen on during a game. |
 | render | Drawing every screen in the original order, with interpolation, without changing the state; the field layer. |
 
 ## 17. Open decisions

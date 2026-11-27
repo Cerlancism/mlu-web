@@ -229,6 +229,10 @@ Some key combinations belong to the browser and cannot be taken by a page. The o
 - **Warning:** if Ctrl was held when the page was about to close, or if the browser passes Ctrl+W to the page, the status strip shows in bold on red, for 8 seconds: "Ctrl+W closes the browser tab. Release Ctrl (tractor beam) before pressing W (Teleporter 2)."
 - The browser decides the confirmation's wording, and shows it only after the player has pressed a key or clicked on the page, which starting a game always involves.
 
+### Keeping the screen on
+
+While a game is in progress (anywhere but the start page) and the page is visible, the page asks the browser to keep the screen on, with its screen wake lock, so that the display does not dim or lock during play, or while the autopilot plays on its own. The browser drops the lock whenever the page is hidden; the page asks for it again within half a second of showing. It lets the lock go on the start page. Where the browser has no screen wake lock, or refuses one (on battery saver, say), the screen dims as usual, and the page asks again every 10 seconds.
+
 ## 6. World
 
 ### The map
@@ -742,6 +746,7 @@ All modules are JavaScript modules in the same folder as the page. The game logi
 | input | Browser events to game key codes and click positions. |
 | touch | The touch controls: the pad, the key buttons, the device keyboard and full screen. |
 | guard | The leave confirmation during a game and the Ctrl+W warning. |
+| wake | Keeping the screen on during a game. |
 | render | Drawing every screen in the original order, with interpolation, without changing state. |
 
 ## 15. Open decisions

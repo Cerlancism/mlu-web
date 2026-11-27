@@ -14,6 +14,7 @@ import {
   createSnapshotStore, snapshotBlocker, makeSnapshot, restoreState,
 } from './snapshots.js';
 import { installLeaveGuard } from './guard.js';
+import { installWakeLock } from './wake.js';
 import { createState } from './state.js';
 import { tickPlay } from './pod.js';
 import { stepEffects } from './effects.js';
@@ -328,12 +329,16 @@ async function main() {
     mode: settings.touch,
   });
   installLeaveGuard({ inGame: () => !s.startpage && !exiting, ctrlHeld: () => s.ctrl, warn: notify });
+  // The screen stays on during a game.
+  const wake = installWakeLock({ inGame: () => !s.startpage });
+  let ticks = 0;
 
   const clock = createClock({
     tick: () => {
       prev = snapshot(s);
       tick(s);
       keepSettings();
+      if (++ticks % 30 === 0) wake.update();
     },
     // While a box opened from the game loop is up, the screen keeps the last frame drawn, as
     // the original's loop stood still inside the dialog call.
@@ -342,7 +347,7 @@ async function main() {
 
   // For testing from the console: step(n) runs n ticks and draws, even while the page is hidden.
   window.mlu = {
-    state: s, clock, assets, snapshots,
+    state: s, clock, wake, assets, snapshots,
     step(n = 1) {
       for (let i = 0; i < n; i++) {
         prev = snapshot(s);

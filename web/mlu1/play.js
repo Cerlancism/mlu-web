@@ -14,6 +14,7 @@ import {
   createSnapshotStore, snapshotBlocker, makeSnapshot, restoreState,
 } from './snapshots.js';
 import { installLeaveGuard } from './guard.js';
+import { installWakeLock } from './wake.js';
 import { createState } from './state.js';
 import { step } from './game.js';
 import { createAutopilot } from './autopilot.js';
@@ -344,6 +345,8 @@ async function main() {
   };
 
   installLeaveGuard({ inGame: () => !s.startpage && !exiting, ctrlHeld: () => s.ctrl, warn: notify });
+  // The screen stays on during a game.
+  const wake = installWakeLock({ inGame: () => !s.startpage });
 
   const clock = createClock({
     tick: () => {
@@ -351,6 +354,7 @@ async function main() {
       step(s, autopilot);
       keepSettings();
       if (++ticks % 15 === 0) showAutopilot();
+      if (ticks % 30 === 0) wake.update();
     },
     render: (alpha) => render(g, s, assets, alpha, prev),
   });
@@ -358,7 +362,7 @@ async function main() {
   // For testing from the console: step(n) runs n ticks (with the autopilot, if on) and draws, even
   // while the page is hidden.
   window.mlu = {
-    state: s, clock, assets, snapshots, dialog, autopilot,
+    state: s, clock, wake, assets, snapshots, dialog, autopilot,
     step(n = 1) {
       for (let i = 0; i < n; i++) {
         prev = snapshot(s);
