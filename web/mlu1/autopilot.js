@@ -1,7 +1,7 @@
 // The autopilot: a virtual player that plays the game through to the end. It presses and releases
 // the same keys a player would, once before each tick, so the game's rules are untouched; it sees
-// the whole game state, the map included, and follows the strategy of docs/mlu1/guide.md.
-// See "Autopilot" in docs/mlu1/specifications.md.
+// the whole game state, the map included, and follows docs/mlu1/strategy.md.
+// See "Autopilot" in docs/mlu1/specifications.md, and "The autopilot's rules" in strategy.md.
 //
 // It keeps its own plans here, never in the game state, so snapshots and saves do not hold them.
 

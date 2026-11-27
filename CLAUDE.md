@@ -23,7 +23,7 @@ Before working on a port, read its specification: [docs/mlu1/specifications.md](
 | `docs/README.md` | The landing page for the documentation. The README and the footers of the site's pages link to it. |
 | `docs/mlu1/specifications.md` | The specification of the MLU 1 web port: how the game behaves and how the port is built. It is kept in step with `web/mlu1/`. |
 | `docs/mlu1/fixes.md` | The bugs in the original that the web port fixes, each with what the original did and what the port does instead. |
-| `docs/mlu1/guide.md` | How to play MLU 1 well, stage by stage. The MLU 1 autopilot (`web/mlu1/autopilot.js`) follows it, so change both together. |
+| `docs/mlu1/strategy.md` | How to play MLU 1 well, stage by stage, and the autopilot's rules for it. The MLU 1 autopilot (`web/mlu1/autopilot.js`) follows it, so change both together. |
 | `docs/mlu2/specifications.md`, `docs/mlu2/fixes.md` | The same for MLU 2, kept in step with `web/mlu2/`. |
 | `tools/` | `serve.py`, the local web server; `make_icons.py`, which makes the site icons from the games' sprites; `make_og_images.py`, which makes the link-preview images (both need Pillow); and `autopilot_sim.mjs`, which tests the MLU 1 autopilot without a browser. |
 | `LICENSE` | GPL-2.0, the license the Motherload Unlimited project declares on SourceForge (<https://sourceforge.net/projects/motherloadunlim>). |
@@ -79,6 +79,7 @@ Run everything from the repository root. Python is MSYS2's and is not on Git Bas
   - Never change behaviour silently.
 - **Specifications:** each port's specification stands on its own.
   - It describes behaviour and design in prose and tables, with no code samples and no references to source files or line numbers. A reader should be able to rebuild the game from it.
+  - The one exception is the MLU 1 autopilot's playing rules: the specification describes the autopilot as a feature and points to "The autopilot's rules" in `docs/mlu1/strategy.md`, which follows the same rules of style. Change `strategy.md` with `web/mlu1/autopilot.js`.
   - Update the specification and `fixes.md` in the same change as the port. `fixes.md` follows the same rules as the specification.
   - The specification describes the web version's behaviour as it is. It does not say where that differs from the original, and it does not mention `fixes.md`.
 - **Updated stamp:** each launcher's footer shows when its port last changed, as `Updated YYYY-MM-DD-HHMM` (UTC+8), with an ISO `datetime` on its `<time>` element. When a change to a port (`web/mlu1/` or `web/mlu2/`) is committed, set that port's stamp to the commit's time, in the same commit.
