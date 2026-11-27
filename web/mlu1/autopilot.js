@@ -145,9 +145,9 @@ const ICE9_STOCK = 150;
 const ICE9_KEYS = 150;
 const ICE9_KEYRING = 40;
 
-// The row below which, with the nuclear reactor, the processor turns radioactive metals into
-// charge.
-const REACTOR_ROW = 1100;
+// The money from which, with the nuclear reactor, the processor turns radioactive metals into
+// charge: the super-ship's price, once it is put aside.
+const REACTOR_MONEY = 1e8;
 
 // The tractor beam's directions, as the pod's neighbour and the arrow that points at it.
 const BEAM_DIRS = [[0, 1, 'down'], [-1, 0, 'left'], [1, 0, 'right'], [0, -1, 'up']];
@@ -390,9 +390,10 @@ class Autopilot {
     this.tripDeep = Math.max(this.tripDeep ?? 0, y);
     // The processor turns coal, petroleum and, with the reactor, thorium, uranium and plutonium
     // into battery charge as they are dug. Those metals sell for far more than the fuel their
-    // charge saves, so with the reactor the processor runs only on deep trips, where energy is
-    // what a trip runs out of.
-    const process = s.nuc ? y > REACTOR_ROW : s.coalb || s.petrolr;
+    // charge saves, so with the reactor the processor stays off until the super-ship's price is
+    // put aside. From then on the charge is worth more: the battery keeps it from trip to trip,
+    // for the deep trips, and the metals lie only above row 1,300.
+    const process = s.nuc ? s.money >= REACTOR_MONEY : s.coalb || s.petrolr;
     if (!s.explorer && s.processor !== !!process && this.tickNo >= (this.procUntil ?? 0)) {
       this.procUntil = this.tickNo + 30;
       this.tap(s, K.C);
@@ -793,6 +794,20 @@ class Autopilot {
       return;
     }
     if (t2 && (need || pays === 'tel2')) {
+      // Teleporter 2 may land the pod in magma within 400 rows above it. Within 200 rows of the
+      // Mega cooling's limit that overheats a pod without Ice9 at once, so without Ice9 it first
+      // climbs out of those rows, if it can.
+      const band = heatRow(s) - 200;
+      if (s.tempmax >= 1200 && s.ice9 <= 1 && y > band + 5) {
+        const plan = this.search(s, x, y, band - 30, y + 2, (i, tx, ty) => ty <= band);
+        if (plan.found >= 0) {
+          this.path = this.route(plan, plan.found);
+          this.at = 1;
+          this.goal = `Going home (${why}): climbing clear of the magma's heat first`;
+          this.status = this.goal;
+          return;
+        }
+      }
       this.tap(s, K.W);
       this.status = `Teleporting home (${why})`;
       return;
@@ -1653,6 +1668,9 @@ class Autopilot {
     if (count('drill') >= 1 && next(D)) extra.push([D, next(D)]);
     if (this.ends.some((e) => e.rad > 0) && next(B)) extra.push([B, next(B)]);
     if (s.drillmax < 200 && now.floor > 120 && next(D)) extra.push([D, next(D)]);
+    // With the reactor at work, a battery big enough to store its charge for the deep trips.
+    if (s.nuc && s.money >= REACTOR_MONEY && next(BAT) && next(BAT) <= 7
+        && price(BAT, next(BAT)) <= spare) return [BAT, next(BAT)];
     // A battery that the burners keep filling: a bigger one carries more charge, with no weight.
     if (this.ends.some((e) => e.full) && next(BAT) && (s.coalb || s.petrolr || s.gasb)) {
       extra.push([BAT, next(BAT)]);
@@ -1710,7 +1728,7 @@ class Autopilot {
     if (s.engine >= 6 || s.engine === 8) want.push(['gasb', 1]);
     // The nuclear reactor, for the energy of deep trips, once the Mega parts are in.
     const mega = ['engine', 'fueltank', 'cargobay', 'hullx', 'radiator'].every((k) => s[k] === 8);
-    if ((mega && s.money > 5e5) || (s.money > 2e7 && now.open > REACTOR_ROW + 400)) {
+    if ((mega && s.money > 5e5) || (s.money > 2e7 && now.open > 1500)) {
       want.push(['nuc', 1]);
     }
     // Teleporter 2s enough for the way home from the deepest rows the rest of the rig allows.
