@@ -50,7 +50,7 @@ The pod spends battery charge before fuel. The base refills only the fuel tank: 
 
 - **The coal burner ($1,000) and the petroleum refinery ($5,000):** with the processor on (key C), each piece of coal becomes 10 charge and each piece of petroleum 20, if the battery has room, instead of filling the cargo bay. That is worth more than selling them, and it lengthens every trip. Buy both early, and keep the processor on.
 - **The natural gas burner:** each gas pocket then adds 50 charge instead of exploding.
-- **The nuclear reactors:** thorium, uranium and plutonium become 100 to 500 charge.
+- **The nuclear reactors:** with the processor on, thorium, uranium and plutonium become 100, 150 and 250 charge, twice that with the improved reactor. Those metals sell for far more than the fuel the charge saves, so this pays only deep down, where trips end when the energy runs out. Buy the reactor ($200,000) for deep work, and run the processor only on deep trips. The improved reactor turns thorium into charge even with the processor off, so it would eat thorium meant for sale.
 - **Bigger batteries:** once the burners keep the battery full, a bigger one holds more.
 - **Without the burners:** coal and petroleum are cheap and heavy, so take them only when nothing better is near.
 - **Lava:** it charges the battery only for the super-ship. For the normal pod it is 100 damage.

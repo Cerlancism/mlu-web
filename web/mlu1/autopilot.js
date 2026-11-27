@@ -144,6 +144,10 @@ const telNeed = (y) => Math.ceil(TEL_NEED[Math.max(0, Math.min(3000, Math.round(
 const ICE9_STOCK = 150;
 const ICE9_KEYS = 150;
 
+// The row below which, with the nuclear reactor, the processor turns radioactive metals into
+// charge.
+const REACTOR_ROW = 1100;
+
 // The tractor beam's directions, as the pod's neighbour and the arrow that points at it.
 const BEAM_DIRS = [[0, 1, 'down'], [-1, 0, 'left'], [1, 0, 'right'], [0, -1, 'up']];
 
@@ -366,9 +370,15 @@ class Autopilot {
 
     this.repairs(s, x, y);
     if (s.battery >= s.batmax - 20 && s.batmax > 0) this.batFull = true;
-    // The processor turns coal, petroleum and, with a reactor, radioactive metals into battery
-    // charge as they are dug: it stays on once there is anything to process with.
-    if (!s.processor && (s.coalb || s.petrolr || s.nuc) && !s.explorer) this.tap(s, K.C);
+    // The processor turns coal, petroleum and, with the reactor, thorium, uranium and plutonium
+    // into battery charge as they are dug. Those metals sell for far more than the fuel their
+    // charge saves, so with the reactor the processor runs only on deep trips, where energy is
+    // what a trip runs out of.
+    const process = s.nuc ? y > REACTOR_ROW : s.coalb || s.petrolr;
+    if (!s.explorer && s.processor !== !!process && this.tickNo >= (this.procUntil ?? 0)) {
+      this.procUntil = this.tickNo + 30;
+      this.tap(s, K.C);
+    }
 
     const tile = y * MAP_W + x;
     if (tile !== this.lastTile) {
@@ -1589,6 +1599,8 @@ class Autopilot {
     if (s.jet === 0 && s.engine >= 3) want.push(['jet', 1]);
     if (s.money > 3e5 && now.floor <= 804) want.push(['tel1', 3]);
     if (s.engine >= 6 || s.engine === 8) want.push(['gasb', 1]);
+    // The nuclear reactor, for the energy of deep trips, once the money makes it cheap.
+    if (s.money > 2e7 && now.open > REACTOR_ROW + 400) want.push(['nuc', 1]);
     // Teleporter 2s enough for the way home from the deepest rows the rest of the rig allows.
     if (now.open > 1000 && s.hullmax >= 300) {
       const stock = telNeed(Math.min(now.open, s.money > 5e6 ? 2999 : 1400)) + 1;
