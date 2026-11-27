@@ -85,7 +85,7 @@ function play(seed) {
       note(`${k}${s[k]}`, `${t} tier ${s[k]}`);
     }
     note(`bat${s.batx}`, `battery tier ${s.batx}`);
-    for (const g of ['coalb', 'petrolr', 'gasb', 'nuc', 'tractor', 'jet', 'tel1', 'tel2', 'iceb']) {
+    for (const g of ['coalb', 'petrolr', 'gasb', 'nuc', 'tractor', 'jet', 'tel1', 'tel2', 'iceb', 'nucx', 'dyn', 'tnt']) {
       if (s[g] > 0) note(g, `first ${g}`);
     }
     for (const m of [1e5, 1e6, 1e7, 1e8]) if (s.money >= m) note(`m${m}`, `${usd(m)}`);
