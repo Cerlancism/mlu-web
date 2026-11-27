@@ -55,6 +55,9 @@ html, body {
   z-index: 2;
 }
 
+/* Beside the Game menu: the game speed and the frames drawn a second. */
+.meter { display: inline-block; vertical-align: top; margin-left: 8px; opacity: 0.8; white-space: nowrap; }
+
 .menu { position: relative; display: inline-block; }
 
 .menubar button {

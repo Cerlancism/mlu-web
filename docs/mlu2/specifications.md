@@ -39,13 +39,15 @@ This document specifies the web version of MLU 2, "MLU2: Crematoria", the sequel
 - **Game screen:** one canvas whose drawing surface is always 800×600. The game draws in those coordinates whatever size the canvas is shown at, and mouse positions are converted from screen size back to 800×600 before the game sees them. The canvas takes keyboard focus when the page loads and when it is clicked.
 - **Touch controls:** a translucent overlay over the game page, for phones and tablets. It is shown on screens whose main pointer is touch, and on any screen from its first touch; the launcher's touch option can instead show it always or never. Its keys send the same keys the keyboard does, so the game cannot tell them apart:
   - **Pad**, at the bottom right: a round eight-way pad for the arrow keys. A touch picks one of eight directions by its angle from the centre, so a diagonal holds two arrows; a touch near the centre holds none. Sliding the finger to another direction releases only the arrow it no longer holds, so Up stays held from up-left to up-right.
-  - **Keys**, at the bottom left: Z, X, 1, 2, 3, A, S, Q, W, T, V, C, D and M, above Ctrl ("Beam"), Shift ("Jet") and Enter ("OK"). Each shows its key and what it does in play. Ctrl stays held from one tap to the next, so the pad can steer the tractor beam with one thumb.
+  - **Keys**, at the bottom left: Z, X, 1, 2, 3, A, S, Q, W, T, V, C and D, above Ctrl ("Beam"), Shift ("Jet") and Enter ("OK"). Each shows its key and what it does in play. Ctrl stays held from one tap to the next, so the pad can steer the tractor beam with one thumb.
   - **Space** ("Dig"), a wide bar at the bottom centre, and **Esc** ("Close") at the top left, below the menu bar.
   - A held pad direction or Space repeats, after 0.4 seconds and then 25 times a second, as a held keyboard key does, so holding them keeps drilling; the other keys press once and release when let go.
+  - **At the top right**, from the left: Slower ("−") and Faster ("+"), which step the speed as `-` and `=` do; M ("Inventory"), the pause screen; then Keyboard and Full screen.
   - **Keyboard**, at the top right, opens the device's own keyboard, for typing a game name (and the other names the game asks for), and closes it on the next tap. Each letter, digit or space typed reaches the game as that key, and each character deleted as Backspace; Enter is Enter. A word the keyboard corrects arrives as the deletions and retyping that turn the old word into the new one. Touching the game screen also closes the keyboard. While the keyboard is open the page shrinks to the space above it, where the browser allows.
   - **Full screen**, at the top right, where the browser allows it: shows the whole page full screen and, on phones, turns it to landscape; tapped again, it leaves full screen.
+  - **Layout:** the buttons at the top right sit level with Esc, below the menu bar. Space is narrowed, where the screen is narrow, to fit between the bottom row of keys and the pad; on a portrait screen the pad is smaller (31% of the screen's shorter side, at least 104 pixels) to leave it room.
   - While a message box or the menu is open, the overlay's game keys are dimmed and do nothing. Keys the overlay holds are released whenever held keys are (losing focus, being hidden). The page does not scroll, zoom on a double tap or reload on a downward swipe.
-- **Menu bar:** a 20-pixel strip with one menu, "Game". Opening it does not pause the game, and closing it gives keyboard focus back to the game screen. Its items, in order:
+- **Menu bar:** a 20-pixel strip with one menu, "Game". Beside it the menu bar always shows the speed and the frames drawn in the last second, such as "Speed: Normal · 120 fps"; the frame rate appears after the first second. Opening it does not pause the game, and closing it gives keyboard focus back to the game screen. Its items, in order:
 
   | Item | Action |
   |---|---|
@@ -73,7 +75,14 @@ This document specifies the web version of MLU 2, "MLU2: Crematoria", the sequel
 
 - **Ticks:** all game time is counted in ticks. Every rule that involves time (movement, timers, animation, fuel use, the game clock, message durations) advances by a fixed amount per tick, never by elapsed real time. One tick updates the whole game once.
 - **Updates made while drawing:** the original advanced many things while drawing a frame, not in its tick: falling rocks, meteors, particles, floating labels, explosions, the tractor beam, the sonic, ice, radiation and nuclear blasts (which change the map), lightning, wind, the shield and the laser with their energy drain, the radiation overlay, the countdown after a fatal message, the teleport and transporter animations, and the menu timers. Because the original drew once after every tick, these advanced once per tick. The web version makes them part of the tick, so they still advance exactly once per tick whether or not a frame is drawn. Drawing changes nothing.
-- **Speed:** a fixed 60 ticks a second, one tick every 16.67 ms. There is no speed setting, and the `-` and `=` keys do nothing.
+- **Speed:** 60 ticks a second, one tick every 16.67 ms, at the normal speed, which is the default. During a game, `-` makes the game slower and `=` faster, one step at a time, and the touch overlay's Slower and Faster buttons do the same. The steps, slowest first:
+  - 0.5, 0.55 and 0.6 times;
+  - between the original's pauses, the original's own steps: a pause of p ms after each tick, shown as "p ms", runs 1000 ÷ p ticks a second, from 27 ms (37.0 ticks a second; the original MLU 1's default), 26 ms (38.5; the original MLU 2's default) and every whole millisecond down to 15 ms (66.7, the original's fastest), with 0.65, 0.7, 0.75, 0.8, 0.85, 0.9 and 0.95 times in among them;
+  - the normal speed, "Normal", between 17 ms and 16 ms;
+  - 1.05 and 1.1 times, then 15 ms, then every 0.05 from 1.15 to 1.5 times;
+  - 2, 3, 4, 6, 8, 12 and 16 times (960 ticks a second).
+
+  That is 41 steps; neither key goes past the ends. The speed is kept with the settings (section 13) and shown in the menu bar. Every rule still runs by the tick, so a step changes only how many ticks run a second. The keys are taken by the page and never reach the game; with Ctrl, Alt or the Command key held they are left to the browser.
 - **The game clock:** 300 ticks make one game minute and a game day has 8 hours. At 60 ticks a second a game hour lasts 5 real minutes and a day 40 minutes. The clock stays in step with everything else that is counted in ticks.
 
 ### Frame pacing
@@ -85,7 +94,7 @@ This document specifies the web version of MLU 2, "MLU2: Crematoria", the sequel
 - **Jumps are not interpolated:** a move that is a jump in the original appears at once, without sliding: camera scroll jumps, teleports, restarts, entering and leaving a base, earthquake shakes, and anything that appears or disappears.
 - **Game state:** the fraction affects only the drawing. The game's rules and state depend on ticks alone.
 - **Ticks per refresh:** a 60 Hz display runs exactly one tick per refresh. Faster displays run one tick or none per refresh, which is still 60 ticks a second: a faster display gives smoother motion, not a faster game.
-- **Stalls:** if more than 250 ms passes between refreshes (for example a hidden tab or a busy computer), that gap counts as no time: the game pauses rather than jumping ahead. At most 8 ticks run in one refresh, and any time beyond that is dropped. Returning to a hidden tab resumes from the current time.
+- **Stalls:** if more than 250 ms passes between refreshes (for example a hidden tab or a busy computer), that gap counts as no time: the game pauses rather than jumping ahead. At most 8 ticks run in one refresh, 8 times the speed (rounded up) when it is faster than normal, and any time beyond that is dropped. Returning to a hidden tab resumes from the current time.
 
 ### Start-up, pausing and restarting
 
@@ -178,6 +187,7 @@ The arrow keys are noted as held on every screen except while a transmission or 
 | D (hold, then release) | Laser cannon, if found: hold to charge, release to fire. |
 | C | Mineral converter on or off (a light on the display). |
 | M | Pause screen. |
+| -, = | Game speed one step slower, faster, during a game (section 3); taken by the page, not the game. |
 | Esc | Closes a transmission or the pause screen. |
 | Enter | Closes a pop-up. |
 | Z | Dynamite. |
@@ -1044,7 +1054,7 @@ Not saved: the minerals carried (the cargo comes back as only the bomb fuel's we
 - **Timing:** writing and reading are not instant. "Game Saved" appears once the save has been written, and loading from the start page starts play once the save has been read.
 - **Failure:** if a save cannot be written (storage full or blocked), the "Game Saved" pop-up does not appear, the save used up is given back, and the status line says why.
 - **Persistence:** browsers may clear a site's stored data when the disk runs low. The page asks the browser to keep its data (persistent storage). If the browser declines, saves still work but are not protected from that clearing.
-- **Settings:** the Music and Sounds switches, the scaling mode and the touch controls option are kept in the browser's local storage under "mlu2.settings". The switches are stored whether they were changed on the start page, with the menu's check boxes or in the launcher, and the game starts with them as they were last left; the scaling mode and touch controls are set in the launcher. Each change keeps the other settings. They are not part of any save: loading a game keeps the switches as they are. If storage is blocked, the switches still work but start on again next time.
+- **Settings:** the Music and Sounds switches, the scaling mode, the touch controls option and the speed (as a multiple of the normal speed, put on the nearest step when read) are kept in the browser's local storage under "mlu2.settings". The switches are stored whether they were changed on the start page, with the menu's check boxes or in the launcher, and the game starts with them as they were last left; the scaling mode and touch controls are set in the launcher. Each change keeps the other settings. They are not part of any save: loading a game keeps the switches as they are. If storage is blocked, the switches still work but start on again next time.
 
 ### Snapshots
 
@@ -1153,10 +1163,11 @@ All modules are JavaScript modules in the same folder as the page. The game logi
 | launcher | The launcher page: the Play link, listing, renaming, exporting, importing and deleting saves and snapshots, resuming snapshots, and the options. |
 | play | Entry of the game page: sets up the page, its menu bar and message boxes, loads images, sounds and fonts, wires input, audio, storage and the field layer to the game, runs one tick (the play update, then the drawing-time updates; nothing while a blocking box is open), takes snapshots and resumes the one named in the URL, and starts the clock. Offers a test hook that runs ticks by hand. |
 | viewport | Fits the game to the window, with crisp and integer scaling, and converts mouse positions. |
-| clock | The display-driven loop: 60 ticks a second, a drawing every refresh with the interpolation fraction. |
+| clock | The display-driven loop: 60 ticks a second times the speed, a drawing every refresh with the interpolation fraction. |
+| speed | The speed steps of the `-` and `=` keys and the touch overlay's speed buttons. |
 | jmath | Java number rules: truncating division and casts, rounding, 32-bit and 8-bit wrap-around, random numbers. |
 | input | Browser events to game key codes (with the system's key repeats), click positions and mouse moves; releases held keys when the page loses focus. |
-| touch | The touch controls: the pad, the key buttons, the device keyboard and full screen. |
+| touch | The touch controls: the pad, the key buttons, the speed buttons, the device keyboard and full screen. |
 | midi | Reads the MIDI music files and plays them with simple synthesised voices. |
 | imagelist | The list of every image file, for preloading. |
 | data | Fixed tables: map size and tile values, effect counts, the bases, gadget names and prices, transmission columns, cheat codes, fonts, colours and the menu's texts. |

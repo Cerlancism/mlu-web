@@ -314,6 +314,12 @@ class Autopilot {
     }
     if (screen === 'start') {
       this.status = 'Waiting for a game';
+    } else if (s.status && screen === 'play') {
+      // The inventory, opened by the player with M, is the pause: the autopilot presses nothing,
+      // since any key would close it, until the player closes it.
+      this.releaseAll(s);
+      this.status = 'Paused while the inventory is open';
+      this.paused = true;
     } else if (s.msg) {
       this.releaseAll(s);
       this.status = `Lost: ${s.msgstr}`;
@@ -322,8 +328,10 @@ class Autopilot {
     } else if (screen === 'mantle') {
       this.mantle(s);
     } else {
+      if (this.paused) this.status = this.goal || 'On';
       this.play(s);
     }
+    if (!s.status) this.paused = false;
   }
 
   // ---- play ------------------------------------------------------------------------------------

@@ -59,9 +59,14 @@ function toolButton(className, parent) {
  * Builds the overlay. keys lists the buttons (TOUCH_KEYS in data.js); press and release send a
  * key to the game (from installInput); gesture unlocks sound; canvas takes focus back when the
  * keyboard closes; mode is the "touch" setting: "auto" shows the overlay on touch screens and at
- * the first touch, "on" always, "off" never. Returns reset, which lets go of every key the overlay holds.
+ * the first touch, "on" always, "off" never. speed ({ slower, faster }) makes the game slower and
+ * faster; autopilot ({ toggle }), if given, switches the autopilot. Returns reset, which lets go
+ * of every key the overlay holds, and setAutopilot, which shows whether the autopilot is on:
+ * while it is, the game keys hide. The item keys marked keep (the inventory, the game's pause)
+ * sit at the top right, just left of the autopilot's button, rather than with the other item
+ * keys, so they stay in reach while it plays.
  */
-export function installTouch({ keys, press, release, gesture, canvas, mode }) {
+export function installTouch({ keys, press, release, gesture, canvas, mode, speed, autopilot }) {
   const overlay = make('div', 'touch', document.body);
   overlay.hidden = true;
 
@@ -182,9 +187,11 @@ export function installTouch({ keys, press, release, gesture, canvas, mode }) {
   for (const k of keys.top) keyButton(k, top);
   const actions = make('div', 'touch-actions', overlay);
   const items = make('div', 'touch-items', actions);
-  items.style.setProperty('--cols', String(Math.ceil(keys.items.length / Math.ceil(keys.items.length / 5))));
-  for (const k of keys.items) keyButton(k, items);
+  const gridKeys = keys.items.filter((k) => !k.keep);
+  items.style.setProperty('--cols', String(Math.ceil(gridKeys.length / Math.ceil(gridKeys.length / 5))));
+  for (const k of gridKeys) keyButton(k, items);
   const row = make('div', 'touch-row', actions);
+  overlay.style.setProperty('--row-keys', String(keys.row.length));
   for (const k of keys.row) keyButton(k, row);
   keyButton({ ...keys.space, className: 'touch-key touch-space' }, overlay);
 
@@ -193,6 +200,25 @@ export function installTouch({ keys, press, release, gesture, canvas, mode }) {
   // is sent to the game as a key press, whether or not the keyboard sends key events of its own.
 
   const tools = make('div', 'touch-tools', overlay);
+
+  // ---- Speed and the autopilot -----------------------------------------------------------------
+
+  function toolKey(label, does, onTap) {
+    const b = toolButton('touch-key', tools);
+    make('b', '', b).textContent = label;
+    make('small', '', b).textContent = does;
+    b.setAttribute('aria-label', does);
+    b.addEventListener('click', onTap);
+    return b;
+  }
+  if (speed) {
+    toolKey('\u2212', 'Slower', speed.slower);
+    toolKey('+', 'Faster', speed.faster);
+  }
+  // The item keys marked keep (the inventory, the game's pause) sit just left of the autopilot's
+  // button, where they stay while the autopilot plays and the other game keys are hidden.
+  for (const k of keys.items.filter((item) => item.keep)) keyButton(k, tools);
+  const autoKey = autopilot ? toolKey('Auto', 'Autopilot', autopilot.toggle) : null;
   const field = make('input', 'touch-field', document.body);
   Object.assign(field, { type: 'text', tabIndex: -1, spellcheck: false, autocomplete: 'off' });
   field.setAttribute('autocorrect', 'off');
@@ -307,5 +333,10 @@ export function installTouch({ keys, press, release, gesture, canvas, mode }) {
   window.addEventListener('blur', reset);
   document.addEventListener('visibilitychange', () => { if (document.hidden) reset(); });
 
-  return { reset };
+  function setAutopilot(on) {
+    overlay.toggleAttribute('data-autopilot', on);
+    autoKey?.classList.toggle('on', on);
+  }
+
+  return { reset, setAutopilot };
 }

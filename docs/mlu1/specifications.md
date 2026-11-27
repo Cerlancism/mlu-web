@@ -31,7 +31,7 @@ This document specifies the web version of Motherload Unlimited 1, "Version 3.1 
   - **Crisp** (the default): the largest size at which both panels fit in the window.
   - **Integer**: the largest whole-number multiple of the original size that fits, counted in physical screen pixels, so every original pixel becomes the same square block. It never goes below the original size, even if the window is smaller.
   - Both modes draw hard-edged pixels with no smoothing. In crisp mode, at sizes between whole-number multiples, neighbouring pixels can differ in width by one screen pixel.
-- **Menu bar:** a 20-pixel strip with one menu, "Game", which opens on a click. Opening it does not pause the game, and closing it gives keyboard focus back to the game screen. While it is open, Up and Down move through the items, Enter or Space picks one, and Esc or a click elsewhere closes it. Its items, in order:
+- **Menu bar:** a 20-pixel strip with one menu, "Game", which opens on a click. Beside it the menu bar always shows the speed and the frames drawn in the last second, such as "Speed: Normal · 120 fps"; the frame rate appears after the first second. Opening it does not pause the game, and closing it gives keyboard focus back to the game screen. While it is open, Up and Down move through the items, Enter or Space picks one, and Esc or a click elsewhere closes it. Its items, in order:
 
   | Item | Action |
   |---|---|
@@ -51,6 +51,7 @@ This document specifies the web version of Motherload Unlimited 1, "Version 3.1 
   - **Keys only:** before each tick it presses and releases the same keys a player would, so the game's rules are unchanged. It can see the whole game state, the map included, and it keeps its plans apart from the game, so snapshots and saves never hold them.
   - **The player's keys:** while it is on, the player's keys, touches and clicks do not reach the game, except on the start page, where they still type a name and start or load a game. Keys held when it is switched on or off are released.
   - **Indicator:** while it is on, the right of the menu bar shows "Autopilot:" and what it is doing, such as "Digging for minerals at 2,150 ft".
+  - **The inventory as a pause:** while it plays, the player's M still reaches the game. While the inventory is open the autopilot presses nothing (any key would close it) and shows "Paused while the inventory is open"; the player's keys and clicks then reach the game, and once the inventory is closed it plays on.
   - **Where it waits:** on the start page it waits for a game to be started or loaded. After a game over it waits there too. It stops at the victory transmission and leaves it for the player to close, because closing it ends the game.
   - **Transmissions:** it closes each other transmission two seconds after it appears.
   - **Choosing what to dig:** it plans routes over the map, by flying, falling, driving and digging. It counts each in ticks, money and energy, and goes for the tile worth most per tick. Money counts as ticks at what its recent trips earned per tick, or, if more, at its spare money (above the super-ship's $100,000,000 once that is put aside) spread over a million ticks, since late in the game it sells little. Each tile bears its share of the climb home: the part of the cargo bay's free room its weight takes up. Of the best five tiles, it takes the one that, with the best tile to dig after it, makes the best pair. When nothing near pays and it plans over more than 400 rows, it skips this look ahead, and looks for tiles to pull in with the beam only if none can be dug, to keep each plan quick. It digs only where it is safe: within the engine's power and the radiator's limit, the hull's and the shielding's limits, and only with the fuel for the way there and back. Before it has the Mega engine, it takes the Mega cooling system only if, with the cooling's running cost and without teleporters, it could still work as deep. It digs a tile beside magma, or through magma, only with an ice bomb, which it sets off just before, counting the bomb's price in the tile's cost.
@@ -80,11 +81,13 @@ This document specifies the web version of Motherload Unlimited 1, "Version 3.1 
 - **Game screen:** one canvas whose drawing surface is always 800×600. The game draws in those coordinates whatever size the canvas is shown at, and mouse positions are converted from screen size back to 800×600 before the game sees them. The canvas takes keyboard focus when the page loads and when it is clicked.
 - **Touch controls:** a translucent overlay over the game page, for phones and tablets. It is shown on screens whose main pointer is touch, and on any screen from its first touch; the launcher's touch option can instead show it always or never. Its keys send the same keys the keyboard does, so the game cannot tell them apart:
   - **Pad**, at the bottom right: a round eight-way pad for the arrow keys. A touch picks one of eight directions by its angle from the centre, so a diagonal holds two arrows; a touch near the centre holds none. Sliding the finger to another direction releases only the arrow it no longer holds, so Up stays held from up-left to up-right.
-  - **Keys**, at the bottom left: Z, X, 1, 2, M, A, S, Q, W and C, above Ctrl ("Beam"), Shift ("Jet") and Enter ("OK"). Each shows its key and what it does in play. Ctrl stays held from one tap to the next, so the pad can steer the tractor beam with one thumb.
+  - **Keys**, at the bottom left: Z, X, 1, 2, A, S, Q, W and C, above Ctrl ("Beam"), Shift ("Jet") and Enter ("OK"). Each shows its key and what it does in play. Ctrl stays held from one tap to the next, so the pad can steer the tractor beam with one thumb.
   - **Space** ("Drill"), a wide bar at the bottom centre, and **Esc** ("Leave") at the top left, below the menu bar.
   - A held pad direction or Space repeats, after 0.4 seconds and then 25 times a second, as a held keyboard key does, so holding them keeps drilling; the other keys press once and release when let go.
+  - **At the top right**, from the left: Slower ("−") and Faster ("+"), which step the speed as `-` and `=` do; M ("Inventory"); Autopilot ("Auto"), which switches the autopilot as the menu's check box does and is lit while it is on; then Keyboard and Full screen. While the autopilot is on, the pad, Space, Esc and the keys at the bottom left are hidden, and these stay, so M, the game's pause, is still in reach.
   - **Keyboard**, at the top right, opens the device's own keyboard, for typing a game name (and the other names the game asks for), and closes it on the next tap. Each letter, digit or space typed reaches the game as that key, and each character deleted as Backspace; Enter is Enter. A word the keyboard corrects arrives as the deletions and retyping that turn the old word into the new one. Touching the game screen also closes the keyboard. While the keyboard is open the page shrinks to the space above it, where the browser allows.
   - **Full screen**, at the top right, where the browser allows it: shows the whole page full screen and, on phones, turns it to landscape; tapped again, it leaves full screen.
+  - **Layout:** the buttons at the top right sit level with Esc, below the menu bar. Space is narrowed, where the screen is narrow, to fit between the bottom row of keys and the pad; on a portrait screen the pad is smaller (31% of the screen's shorter side, at least 104 pixels) to leave it room.
   - While a message box or the menu is open, the overlay's game keys are dimmed and do nothing. Keys the overlay holds are released whenever held keys are (losing focus, being hidden). The page does not scroll, zoom on a double tap or reload on a downward swipe.
 - **Status line:** a strip along the bottom of the game screen shows loading progress and errors, such as a save that could not be stored, and the Ctrl+W warning (section 5). It is hidden when it has nothing to show.
 - **Files:** the game page, its stylesheet, its entry module, the launcher page with its stylesheet and module, the game modules and the icons sit in one folder. The web app manifest, its icons and the service worker are the site's, one folder up. The images and sounds are beside them, in an `images` folder that keeps the original paths and file names exactly, including upper-case `.PNG` and `.JPG` extensions and a space in "dark matter.png". A generated list of every image file sits beside the modules so that all images can be loaded at start-up.
@@ -99,7 +102,14 @@ This document specifies the web version of Motherload Unlimited 1, "Version 3.1 
 
 - **Ticks:** all game time is counted in ticks. Every rule that involves time (movement, timers, animation, fuel use, message durations) advances by a fixed amount per tick, never by elapsed real time. One tick updates the whole game once.
 - **Updates made while drawing:** the original advanced some things while drawing a frame, not in its tick: particles, the explosion animation, floating labels, the sonic, ice and nuclear bomb blasts (which change the map), the tractor beam and laser timers, the wreck's position, the countdown after a fatal message, the start-page text cursor, the inventory's pause, the mantle scroll and its detonations, and the victory scoring. Because the original drew once after every tick, these advanced once per tick. The web version makes them part of the tick, run straight after the tick's other updates in the order the original drew them, so they still advance exactly once per tick whether or not a frame is drawn. Drawing changes nothing. The original drew a timed effect (an explosion, a beam, a label, a bomb's ring) once more on the frame where it ended; the web version notes such effects when they end in a tick and draws them that one more time.
-- **Speed:** a fixed 60 ticks a second, one tick every 16.67 ms. There is no speed setting, and the `-` and `=` keys do nothing.
+- **Speed:** 60 ticks a second, one tick every 16.67 ms, at the normal speed, which is the default. During a game, `-` makes the game slower and `=` faster, one step at a time, and the touch overlay's Slower and Faster buttons do the same. The steps, slowest first:
+  - 0.5, 0.55 and 0.6 times;
+  - between the original's pauses, the original's own steps: a pause of p ms after each tick, shown as "p ms", runs 1000 ÷ p ticks a second, from 27 ms (37.0 ticks a second; the original MLU 1's default), 26 ms (38.5; the original MLU 2's default) and every whole millisecond down to 15 ms (66.7, the original's fastest), with 0.65, 0.7, 0.75, 0.8, 0.85, 0.9 and 0.95 times in among them;
+  - the normal speed, "Normal", between 17 ms and 16 ms;
+  - 1.05 and 1.1 times, then 15 ms, then every 0.05 from 1.15 to 1.5 times;
+  - 2, 3, 4, 6, 8, 12 and 16 times (960 ticks a second).
+
+  That is 41 steps; neither key goes past the ends. The speed is kept with the settings (section 11) and shown in the menu bar. Every rule still runs by the tick, so a step changes only how many ticks run a second. The keys are taken by the page and never reach the game; with Ctrl, Alt or the Command key held they are left to the browser.
 - **Input between ticks:** key presses and clicks are handled the moment they arrive, between ticks, as in the original, where they arrived on a separate thread.
 
 ### Frame pacing
@@ -112,7 +122,7 @@ This document specifies the web version of Motherload Unlimited 1, "Version 3.1 
 - **Game state:** the fraction affects only the drawing. The game's rules and state depend on ticks alone.
 - **Ticks per refresh:** a 60 Hz display runs exactly one tick per refresh. Faster displays run one tick or none per refresh, which is still 60 ticks a second: a faster display gives smoother motion, not a faster game. A display slightly slower than 60 Hz, such as 59.94 Hz, needs about four refreshes a minute that run two ticks, which interpolation hides.
 - **Checked:** in a simulation with refresh timing wobbling by up to half a millisecond, at 59.94, 60, 75, 90, 100, 120, 144, 165 and 240 Hz, the game ran at 60.00 ticks a second. Between consecutive refreshes, the drawn position of something moving 5 pixels per tick never strayed more than 0.02 pixels from an even step. In a browser on a 120 Hz display the game drew 120 frames and ran 60 ticks a second, and drawing a frame took under a millisecond.
-- **Stalls:** if more than 250 ms passes between refreshes (for example a hidden tab or a busy computer), that gap counts as no time: the game pauses rather than jumping ahead. At most 8 ticks run in one refresh, and any time beyond that is dropped. Returning to a hidden tab resumes from the current time. Browsers stop refreshing a page that is hidden or fully covered by other windows, so the game pauses then too.
+- **Stalls:** if more than 250 ms passes between refreshes (for example a hidden tab or a busy computer), that gap counts as no time: the game pauses rather than jumping ahead. At most 8 ticks run in one refresh, 8 times the speed (rounded up) when it is faster than normal, and any time beyond that is dropped. Returning to a hidden tab resumes from the current time. Browsers stop refreshing a page that is hidden or fully covered by other windows, so the game pauses then too.
 
 ### Start-up, pausing and restarting
 
@@ -196,6 +206,7 @@ While the menu or a message box is open, keys go to it and not to the game (sect
 | W | Teleporter 2. |
 | C | Mineral processor on or off. |
 | M | Inventory open or closed. |
+| -, = | Game speed one step slower, faster, during a game (section 3); taken by the page, not the game. |
 | Enter | Close the transmission or pop-up. |
 
 ### Mantle
@@ -648,7 +659,7 @@ Saves are kept in the browser's local storage under "mlu1.save." followed by the
 
 ### Settings
 
-The Music and Sound FX switches, the scaling mode and the touch controls option are kept in the browser's local storage under "mlu1.settings". The switches are stored whether they were changed on the start page, in the inventory, with the menu's check boxes or in the launcher, and the game starts with them as they were last left; the scaling mode and touch controls are set in the launcher. Each change keeps the other settings. They are not part of any save: loading a game keeps the switches as they are. If storage is blocked, the switches still work but start on again next time.
+The Music and Sound FX switches, the scaling mode, the touch controls option and the speed (as a multiple of the normal speed, put on the nearest step when read) are kept in the browser's local storage under "mlu1.settings". The switches are stored whether they were changed on the start page, in the inventory, with the menu's check boxes or in the launcher, and the game starts with them as they were last left; the scaling mode and touch controls are set in the launcher. Each change keeps the other settings. They are not part of any save: loading a game keeps the switches as they are. If storage is blocked, the switches still work but start on again next time.
 
 ### Format
 
@@ -724,7 +735,8 @@ All modules are JavaScript modules in the same folder as the page. The game logi
 | game | One tick, with no page code: the autopilot's keys, then the play or mantle update, then the drawing-time updates. The game page and the test harness both run it. |
 | autopilot | The autopilot: route planning over the map, choosing what to dig, pressing the keys for each move, shopping in the base, and the mantle's dive and rock dodging. |
 | viewport | Fits the game to the window, with integer and crisp scaling, and converts mouse positions. |
-| clock | The display-driven loop: 60 ticks a second, a drawing every refresh with the interpolation fraction. |
+| clock | The display-driven loop: 60 ticks a second times the speed, a drawing every refresh with the interpolation fraction. |
+| speed | The speed steps of the `-` and `=` keys and the touch overlay's speed buttons. |
 | jmath | Java number rules: truncating division and casts, rounding, 32-bit and 8-bit wrap-around, random numbers. |
 | data | Fixed tables: tiles, minerals, upgrades, levels, bonus steps, transmissions, rewards, cheat codes, key codes, fonts and the menu's texts. |
 | imagelist | The list of every image file, for preloading. |
@@ -744,7 +756,7 @@ All modules are JavaScript modules in the same folder as the page. The game logi
 | audio | Sound clips, loops and music. |
 | midi | Reading MIDI files and playing them with a simple synthesiser. |
 | input | Browser events to game key codes and click positions. |
-| touch | The touch controls: the pad, the key buttons, the device keyboard and full screen. |
+| touch | The touch controls: the pad, the key buttons, the speed buttons, the device keyboard and full screen. |
 | guard | The leave confirmation during a game and the Ctrl+W warning. |
 | wake | Keeping the screen on during a game. |
 | render | Drawing every screen in the original order, with interpolation, without changing state. |

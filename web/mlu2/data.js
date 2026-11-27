@@ -132,7 +132,7 @@ export const TOUCH_KEYS = {
     { code: 86, key: 'V', does: 'Shield' },
     { code: 67, key: 'C', does: 'Convert' },
     { code: 68, key: 'D', does: 'Cannon' },
-    { code: 77, key: 'M', does: 'Inventory' },
+    { code: 77, key: 'M', does: 'Inventory', keep: true }, // the pause: at the top right
   ],
   row: [
     { code: 17, key: 'Ctrl', does: 'Beam', latch: true },

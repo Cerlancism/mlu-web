@@ -34,6 +34,7 @@ export function loadSettings() {
     sounds: typeof saved.sounds === 'boolean' ? saved.sounds : true,
     scale: SCALES.includes(saved.scale) ? saved.scale : 'crisp',
     touch: TOUCH.includes(saved.touch) ? saved.touch : 'auto',
+    speed: typeof saved.speed === 'number' && saved.speed > 0 ? saved.speed : 1,
   };
 }
 

@@ -3,7 +3,7 @@
 
 import { toGameCoords } from './viewport.js';
 
-// The original's - and = speed keys are removed, so those keys stay with the browser.
+// The original's - and = speed keys never reach the game: the page handles them (speed.js).
 const CODES = {
   ArrowUp: 38, ArrowDown: 40, ArrowLeft: 37, ArrowRight: 39, Enter: 10, NumpadEnter: 10,
   Space: 32, Escape: 27, Backspace: 8, ShiftLeft: 16, ShiftRight: 16, ControlLeft: 17,

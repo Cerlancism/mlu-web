@@ -4,7 +4,7 @@ Motherload Unlimited 1 and MLU2: Crematoria, the fan-made Motherload mining game
 
 **Play:** <https://cerlancism.github.io/mlu-web/web/>. The direct links are [MLU 1](https://cerlancism.github.io/mlu-web/web/mlu1/) and [MLU 2: Crematoria](https://cerlancism.github.io/mlu-web/web/mlu2/).
 
-Each port plays the same as the original, with the same rules, numbers, screens and assets, and with the original's bugs fixed. Saved games stay in your browser and can be exported as the games' own save files. Snapshots keep a whole game in progress, so it can be resumed later. The site installs as an app and works offline.
+Each port plays the same as the original, with the same rules, numbers, screens and assets, and with the original's bugs fixed. Saved games stay in your browser and can be exported as the games' own save files. Snapshots keep a whole game in progress, so it can be resumed later. The site can be installed as an app (PWA) and works offline.
 
 ## Documentation
 

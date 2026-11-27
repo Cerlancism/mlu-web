@@ -442,7 +442,7 @@ export const TOUCH_KEYS = {
     { code: K.X, key: 'X', does: 'TNT' },
     { code: K.D1, key: '1', does: 'Sonic' },
     { code: K.D2, key: '2', does: 'Ice' },
-    { code: K.M, key: 'M', does: 'Inventory' },
+    { code: K.M, key: 'M', does: 'Inventory', keep: true }, // the pause: at the top right, left of Autopilot
     { code: K.A, key: 'A', does: 'Hull' },
     { code: K.S, key: 'S', does: 'Drill' },
     { code: K.Q, key: 'Q', does: 'Tele 1' },

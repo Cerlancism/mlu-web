@@ -1,8 +1,10 @@
 /* Touch controls (touch.js): a translucent overlay over the whole page. The pad sits at the
    bottom right; the item keys, above Ctrl, Shift and Enter, at the bottom left; Space is a wide
-   bar at the bottom centre; Esc sits at the top left, below the menu bar, and the keyboard and
-   full-screen buttons at the top right. Sizes follow the shorter side
-   of the screen, and the edges keep clear of notches and rounded corners. */
+   bar at the bottom centre, narrowed to fit between the bottom row of keys and the pad, which
+   is smaller on a portrait screen to leave it room; Esc sits at the top left,
+   below the menu bar, and level with it at the top right the speed buttons, the autopilot's
+   (MLU 1), and the keyboard and full-screen buttons. Sizes follow the shorter side of the
+   screen, and the edges keep clear of notches and rounded corners. */
 
 .touch {
   --b: clamp(36px, 9.5vmin, 52px);   /* a key */
@@ -51,7 +53,7 @@
 
 .touch-tools {
   right: calc(var(--edge) + env(safe-area-inset-right, 0px));
-  top: calc(var(--edge) + env(safe-area-inset-top, 0px));
+  top: calc(20px + var(--edge) + env(safe-area-inset-top, 0px)); /* level with Esc */
 }
 
 .touch-row { display: flex; gap: var(--gap); }
@@ -97,12 +99,16 @@
   opacity: 0.8;
 }
 
-/* Space, the drill: a wide bar at the bottom centre. */
+/* Space, the drill: a wide bar at the bottom centre, beside the bottom row of keys and below the
+   item keys, narrowed where the screen is too narrow to clear that row and the pad. */
 .touch-space {
   position: absolute;
   left: 50%;
   bottom: calc(var(--edge) + env(safe-area-inset-bottom, 0px));
-  width: calc(5 * var(--b));
+  --row-w: calc(var(--row-keys, 3) * var(--b) + (var(--row-keys, 3) - 1) * var(--gap));
+  width: min(5 * var(--b),
+    2 * (50vw - var(--edge) - env(safe-area-inset-left, 0px) - var(--row-w) - 2 * var(--gap)),
+    2 * (50vw - var(--edge) - env(safe-area-inset-right, 0px) - var(--pad) - 2 * var(--gap)));
   height: calc(0.8 * var(--b));
   transform: translateX(-50%);
   flex-direction: row;
@@ -161,6 +167,18 @@
 
 .touch-arrow.on { background: radial-gradient(circle, rgb(255 255 255 / 38%), transparent 70%); }
 .touch-arrow.on::before { border-bottom-color: #fff; }
+
+/* A portrait screen is narrow: a smaller pad leaves Space room at the bottom centre. */
+@media (orientation: portrait) {
+  .touch { --pad: clamp(104px, 31vmin, 200px); }
+}
+
+/* While the autopilot plays (MLU 1), the game keys hide; the top right, with the inventory key
+   (the pause) beside the autopilot's button, stays. */
+.touch[data-autopilot] .touch-pad,
+.touch[data-autopilot] .touch-top,
+.touch[data-autopilot] .touch-actions,
+.touch[data-autopilot] .touch-space { display: none; }
 
 /* While a message box or the menu is open the game keys do nothing, and show it. */
 html[data-modal] .touch-key,

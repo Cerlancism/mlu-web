@@ -7,7 +7,8 @@ import { createClock } from './clock.js';
 import { loadAssets } from './assets.js';
 import { createAudio } from './audio.js';
 import { createStore } from './storage.js';
-import { loadSettings, settingsKeeper } from './settings.js';
+import { loadSettings, saveSettings, settingsKeeper } from './settings.js';
+import { SPEEDS, nearestStep } from './speed.js';
 import { installInput } from './input.js';
 import { installTouch } from './touch.js';
 import {
@@ -320,6 +321,7 @@ async function main() {
     move: (x, y) => mouseMove(s, x, y),
     gesture: () => sfx.unlock(),
   });
+  let stepSpeed = () => {}; // set once the clock is made
   installTouch({
     keys: TOUCH_KEYS,
     press: input.press,
@@ -327,6 +329,7 @@ async function main() {
     gesture: () => sfx.unlock(),
     canvas,
     mode: settings.touch,
+    speed: { slower: () => stepSpeed(-1), faster: () => stepSpeed(1) },
   });
   installLeaveGuard({ inGame: () => !s.startpage && !exiting, ctrlHeld: () => s.ctrl, warn: notify });
   // The screen stays on during a game.
@@ -343,6 +346,42 @@ async function main() {
     // While a box opened from the game loop is up, the screen keeps the last frame drawn, as
     // the original's loop stood still inside the dialog call.
     render: (alpha) => { if (!gameBlocked()) render(g, s, assets, alpha, prev); },
+  });
+
+  // The - and = keys make the game slower and faster during a game, one step at a time, as the
+  // original's speed keys did. The step is kept with the settings. The menu bar shows it, with
+  // the frames drawn in the last second.
+  let speedStep = nearestStep(settings.speed);
+  clock.setSpeed(SPEEDS[speedStep].x);
+  const meter = document.getElementById('meter');
+  let fps = null;
+  const showMeter = () => {
+    meter.textContent = `Speed: ${SPEEDS[speedStep].label}${fps === null ? '' : ` · ${fps} fps`}`;
+  };
+  let frames = clock.stats.frames;
+  let since = performance.now();
+  setInterval(() => {
+    const now = performance.now();
+    fps = Math.round(((clock.stats.frames - frames) * 1000) / (now - since));
+    frames = clock.stats.frames;
+    since = now;
+    showMeter();
+  }, 1000);
+  showMeter();
+  // One step slower (-1) or faster (1), from the keys or the touch buttons; during a game only.
+  stepSpeed = (dir) => {
+    if (s.startpage || dialog.current || !menu.list.hidden) return false;
+    speedStep = Math.min(SPEEDS.length - 1, Math.max(0, speedStep + dir));
+    clock.setSpeed(SPEEDS[speedStep].x);
+    saveSettings({ speed: SPEEDS[speedStep].x });
+    showMeter();
+    return true;
+  };
+  window.addEventListener('keydown', (e) => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const key = e.code || e.key;
+    const dir = key === 'Equal' || key === '=' ? 1 : key === 'Minus' || key === '-' ? -1 : 0;
+    if (dir && stepSpeed(dir)) e.preventDefault();
   });
 
   // For testing from the console: step(n) runs n ticks and draws, even while the page is hidden.

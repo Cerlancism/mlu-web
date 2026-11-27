@@ -3,10 +3,11 @@
 //
 // The original applet ran one tick, repainted, then slept for an adjustable game-speed setting.
 // The web version keeps the tick as the unit of game time, so every rule stays tick-based
-// exactly as in the original, and runs a fixed 60 ticks a second (no speed setting).
+// exactly as in the original, and runs 60 ticks a second times a speed setting (setSpeed).
 //
-// Speed: each refresh adds the real time since the previous one (the frame delta) to a time
-// bank and runs as many ticks as the bank holds, so the refresh rate never changes game speed.
+// Speed: each refresh adds the real time since the previous one (the frame delta), times the
+// speed setting, to a time bank and runs as many ticks as the bank holds, so the refresh rate
+// never changes game speed.
 //   - The bank is fed a smoothed frame delta (exponential moving average, weight 1/10), so
 //     timestamp jitter cancels out. The average conserves time: what it holds back from one
 //     frame it pays out over the next ones, so the long-run rate is exact.
@@ -22,7 +23,7 @@
 
 export const TICKS_PER_SECOND = 60;
 export const TICK_MS = 1000 / TICKS_PER_SECOND;
-const MAX_TICKS_PER_FRAME = 8;  // more than this in one frame means a stall: drop the backlog
+const MAX_TICKS_PER_FRAME = 8;  // at normal speed, more in one frame means a stall: drop them
 const MAX_FRAME_GAP_MS = 250;   // a longer gap between frames is treated as a pause
 const SMOOTHING = 0.1;          // weight of the newest frame delta in the moving average
 
@@ -40,6 +41,7 @@ export function createClock({ tick, render }) {
   let acc = 0; // time bank in ms, kept in [-TICK_MS / 2, TICK_MS / 2) after each frame
   let avg = 0; // smoothed frame delta in ms; 0 = not known yet
   let rafId = 0;
+  let speed = 1; // game time per real time
   const stats = { frames: 0, ticks: 0, dropped: 0 };
 
   function frame(now) {
@@ -51,11 +53,13 @@ export function createClock({ tick, render }) {
       avg = 0; // a pause: no game time passes, and the next delta restarts the average
     } else {
       avg = avg === 0 ? dt : avg + (dt - avg) * SMOOTHING;
-      acc += avg;
+      acc += avg * speed;
     }
 
+    // Faster speeds run more ticks in a frame before it counts as a stall.
+    const most = MAX_TICKS_PER_FRAME * Math.max(1, Math.ceil(speed));
     let n = 0;
-    while (acc >= TICK_MS / 2 && n < MAX_TICKS_PER_FRAME) {
+    while (acc >= TICK_MS / 2 && n < most) {
       tick();
       acc -= TICK_MS;
       n++;
@@ -98,6 +102,12 @@ export function createClock({ tick, render }) {
       running = false;
       cancelAnimationFrame(rafId);
     },
+    /** Sets the speed, as a multiple of 60 ticks a second. */
+    setSpeed(x) {
+      speed = x;
+    },
+    /** The speed, as a multiple of 60 ticks a second. */
+    speed: () => speed,
     /** Counters since start: frames drawn, ticks run, ticks dropped after stalls. */
     stats,
   };

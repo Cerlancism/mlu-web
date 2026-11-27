@@ -103,11 +103,14 @@ html, body {
 .menu-sep { border-top: 1px solid #bbb; margin: 2px 0; }
 
 /* While the autopilot plays: its name and what it is doing, at the right of the menu bar. */
+/* Beside the Game menu: the game speed and the frames drawn a second. */
+.meter { display: inline-block; vertical-align: top; margin-left: 8px; opacity: 0.8; white-space: nowrap; }
+
 .autopilot {
   position: absolute;
   right: 8px;
   top: 0;
-  max-width: calc(100% - 80px);
+  max-width: calc(100% - 260px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
