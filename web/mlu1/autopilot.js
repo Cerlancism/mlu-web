@@ -142,9 +142,16 @@ const telNeed = (y) => Math.ceil(TEL_NEED[Math.max(0, Math.min(3000, Math.round(
 
 // The Ice9 the pod keeps in hand to work below the Mega cooling system's limit.
 const ICE9_STOCK = 150;
+const ICE9_KEYS = 150;
+
+// The tractor beam's directions, as the pod's neighbour and the arrow that points at it.
+const BEAM_DIRS = [[0, 1, 'down'], [-1, 0, 'left'], [1, 0, 'right'], [0, -1, 'up']];
 
 // The ticks a TNT blast through rock in the shaft counts as in the route search.
 const TNT_TICKS = 120;
+
+// The ticks a whole drill's wear is worth, for pricing wear in the route search deep down.
+const DRILL_TICKS = 20000;
 
 // The ticks a tankful of energy is worth, for pricing energy in the route search.
 const ENERGY_TICKS = 20000;
@@ -160,7 +167,7 @@ const TEL_DRILL = 1000;
 const DRILL_TIERS = [2, 3, 4, 5, 6, 7, 8];
 
 const GADGET_PRICE = {
-  dyn: 2000, tnt: 10000, tel1: 20000, tel2: 100000, hullfix: 20000, drillfix: 100000, iceb: 50000, sonb: 30000,
+  dyn: 2000, tnt: 10000, tractor: 150000, tel1: 20000, tel2: 100000, hullfix: 20000, drillfix: 100000, iceb: 50000, sonb: 30000,
   gasb: 50000, nuc: 200000, nucx: 1000000, jet: 3000, coalb: 1000, petrolr: 5000,
 };
 
@@ -337,6 +344,20 @@ class Autopilot {
       return;
     }
 
+    // In the air above a drop into magma (after a teleport, say): hold Up and plan again, never
+    // letting the fall happen, since magma can be the end of the pod.
+    if (!s.explorer && isOpen(m[x][fy + 1] ?? 0) && this.magmaBelow(m, x, fy)) {
+      const next = this.path?.[this.at];
+      if (!next || next.how === FALL || next.how === DIG_DOWN) {
+        this.path = null;
+        this.keys(s, { up: true });
+        this.status = 'Keeping clear of the magma below';
+        if (++this.hover % 30 === 0) this.decide(s, x, y);
+        return;
+      }
+    }
+    this.hover = 0;
+
     // A dig, or the super-ship's laser, runs on by itself.
     if (s.digtimr > 0 || s.mode === 2 || s.mode === 4 || s.timr2 > 0) {
       this.keys(s);
@@ -362,15 +383,56 @@ class Autopilot {
       this.path = null;
     }
 
+    if (this.beam(s, x, y, fy)) return;
     if (!this.path || this.at >= this.path.length) this.decide(s, x, y);
     if (this.path) this.follow(s, x, y, fy);
+  }
+
+  /**
+   * The tractor beam: standing, deep down, it pulls in a valuable neighbouring tile instead of
+   * digging it. The beam wears no drill, starts no earthquake and opens no tile, so magma cannot
+   * pour in, and pulling in the tile below needs no Ice9 below the cooling's limit. Returns
+   * whether it used this tick.
+   */
+  beam(s, x, y, fy) {
+    if (this.beamHeld) {
+      // The beam has fired: let go of Ctrl and the arrow, then plan again.
+      this.hold(s, K.CTRL, false);
+      this.keys(s);
+      this.beamHeld = false;
+      this.path = null;
+      return true;
+    }
+    if (!s.tractor || s.explorer || s.tr || s.mode !== 1 || s.digtimr > 0) return false;
+    const m = s.map;
+    if (isOpen(m[x][fy + 1] ?? 0) || s.fuel + s.battery < 30 + this.homeEnergy(s, x, y)) return false;
+    for (const [dx, dy, k] of BEAM_DIRS) {
+      const tx = x + dx;
+      const ty = y + dy;
+      if (tx < 0 || tx >= MAP_W || ty < 5 || !this.beamWorth(s, m, tx, ty)) continue;
+      this.keys(s);
+      this.hold(s, K.CTRL, true);
+      this.keys(s, { [k]: true });
+      this.beamHeld = true;
+      this.status = this.describe(s, m, { i: tx, beam: true }, { top: ty });
+      return true;
+    }
+    return false;
+  }
+
+  /** Whether the tile at (tx, ty) is worth pulling in with the beam rather than digging. */
+  beamWorth(s, m, tx, ty) {
+    const v = m[tx][ty];
+    if (v >= 42 && v <= 46) return false;  // a Mega part installs only when dug
+    if (mineralWeight(v) <= 0 || this.value(s, v, ty) <= 0) return false;
+    return ty > 1000 || besideMagma(m, tx, ty) || ty > heatRow(s);
   }
 
   /** Repair kits and teleports that need no plan. */
   repairs(s, x, y) {
     if (s.explorer) return;
-    if (s.hullfix > 0 && s.hullmax - s.hull < Math.min(250, this.hullReserve(s, y)) + 10
-        && s.hull > 0) {
+    if (s.hullfix > 0 && s.hull > 0 && (s.hullmax - s.hull < Math.min(250, this.hullReserve(s, y)) + 10
+        || (y > 1000 && s.hull > 0.5 * s.hullmax && s.hull >= 250))) {
       this.tap(s, K.A);
     }
     if (s.drillfix > 0 && s.drill < wear(MARBLE, y) + 5 && s.drill < s.drillmax) {
@@ -381,7 +443,7 @@ class Autopilot {
   /** Damage the pod should be able to take at a row before it turns back. */
   hullReserve(s, y) {
     let r = 4;
-    if (y > 1000) r += 170;  // earthquake rocks hit for 80
+    if (y > 1000) r += 250;  // earthquake rocks hit for 80, often several times
     return r;
   }
 
@@ -687,7 +749,7 @@ class Autopilot {
   }
 
   /** What a tile is worth to collect now, in dollars. */
-  value(s, v) {
+  value(s, v, ty = s.iposy) {
     const w = mineralWeight(v);
     if (w > 0 && v !== ICE9) {
       if (w + s.cargo > s.cargomax) return 0;
@@ -707,7 +769,18 @@ class Autopilot {
       if (s.explorer) return s.nux >= DIVE_NUX && s.ice9 < DIVE_ICE9 + 140 ? 3e6 : 0;
       // With the Mega cooling system, Ice9 is what opens the rows below its limit, and while
       // any is left the pod cannot overheat.
-      if (s.radiator === 8) return s.ice9 < ICE9_STOCK ? 5e5 : 2e4;
+      if (s.radiator === 8) {
+        // Below the Mega cooling system's limit, Ice9 is what lets the pod dig down.
+        const line = heatRow(s);
+        if (ty > line) return s.ice9 < ICE9_STOCK ? 5e5 : 2e4;
+        // Just above it, Ice9 is kept as keys for the way down: taken only once the pod's own
+        // Ice9 is used up, since it drains from the moment it is dug. Higher up it would only
+        // drain away unused.
+        if (ty >= line - ICE9_KEYS) {
+          return s.ice9 > 6 ? 0 : s.iposy >= line - ICE9_KEYS ? 5e5 : 2e5;
+        }
+        return 0;
+      }
       return 2e4;
     }
     if (v === 47) return s.explorer || s.mith >= 150 ? 0 : 1.5e6;
@@ -747,7 +820,7 @@ class Autopilot {
         }
         if (d === Infinity || plan.how[i] < DIG_DOWN) continue;
         const v = m[tx][ty];
-        const worth = this.value(s, v);
+        const worth = this.value(s, v, ty);
         if (worth <= 0) {
           if (mineralWeight(v) + s.cargo > s.cargomax && v <= 41) this.blocked.cargo++;
           continue;
@@ -767,6 +840,36 @@ class Autopilot {
         if (look) look.push({ i, tx, ty, worth, cost, score });
       }
     }
+    // Tiles the beam can pull in from a tile the pod can reach and stand in: the beam reaches
+    // what digging cannot, beside magma or below the cooling's limit.
+    if (s.tractor && !s.explorer) {
+      for (let r = 0; r < rows; r++) {
+        const ty = top + r;
+        if (ty <= 1000) continue;
+        for (let tx = 0; tx < MAP_W; tx++) {
+          const i = r * MAP_W + tx;
+          const d = dist[i];
+          if (d === Infinity || isOpen(m[tx][ty + 1] ?? 0)) continue;
+          for (const [dx, dy] of BEAM_DIRS) {
+            const bx = tx + dx;
+            const by = ty + dy;
+            if (bx < 0 || bx >= MAP_W || by < 5 || !this.beamWorth(s, m, bx, by)) continue;
+            const worth = this.value(s, m[bx][by], by);
+            const back = Math.max(0, by - y) * fly;
+            const share = Math.min(1, Math.max(0.1, this.weight(s, m[bx][by])
+              / Math.max(1, s.cargomax - s.cargo)));
+            const home = (this.teleportPays(s, ty) ? this.teleportEnergy(s)
+              : 1.35 * (home0 + perTick * (back + Math.abs(tx - x) * 12)) + 0.08 * s.fuelmax + 2)
+              + 30;
+            if (energy[i] + home > have) continue;
+            const cost = d + 40 + back * share;
+            const score = worth / cost;
+            if (!best || score > best.score) best = { i, score, beam: [bx, by] };
+            if (look) look.push({ i, tx, ty, worth, cost, score, beam: [bx, by] });
+          }
+        }
+      }
+    }
     // A look ahead: of the best few, the one that leads on to the best next mineral, so the trip
     // chains minerals together rather than taking the best one alone.
     if (look && look.length > 1) {
@@ -775,10 +878,14 @@ class Autopilot {
       for (const c of look.slice(0, LOOK_AHEAD)) {
         const next = this.followUp(s, c.tx, c.ty, c.i, plan);
         const score = (c.worth + next.worth) / (c.cost + next.cost);
-        if (score > chain) { chain = score; best = { i: c.i, score: c.score }; }
+        if (score > chain) { chain = score; best = { i: c.i, score: c.score, beam: c.beam }; }
       }
     }
-    if (best) best.goal = this.describe(s, m, best, plan);
+    if (best) {
+      best.goal = best.beam
+        ? this.describe(s, m, { i: best.beam[0], beam: true }, { top: best.beam[1] })
+        : this.describe(s, m, best, plan);
+    }
     return best;
   }
 
@@ -797,7 +904,7 @@ class Autopilot {
       const x = i % MAP_W;
       const y = sub.top + Math.floor(i / MAP_W);
       if ((y - plan.top) * MAP_W + x === skip) continue;
-      const worth = this.value(s, s.map[x][y]);
+      const worth = this.value(s, s.map[x][y], y);
       if (worth <= 0) continue;
       const score = worth / (d + 40);
       if (score > bestScore) { bestScore = score; best = { worth, cost: d + 40 }; }
@@ -814,7 +921,8 @@ class Autopilot {
       49: 'adamantium', 50: 'Ice9', 51: 'a small bomb', 52: 'a medium bomb', 53: 'a large bomb',
       31: 'lava' };
     const what = names[v] ?? 'minerals';
-    return `Digging for ${what} at ${((ty - 4) * 10).toLocaleString('en')} ft`;
+    const verb = best.beam ? 'Pulling in' : 'Digging for';
+    return `${verb} ${what} at ${((ty - 4) * 10).toLocaleString('en')} ft`;
   }
 
   // ---- the route search ----
@@ -1012,7 +1120,12 @@ class Autopilot {
     // A Mega part the engine cannot take, or one that is no use.
     if (v === 46 && s.engmax < 1500) return Infinity;
     const dollars = dw * 3 + 50 * digUse(y) * 2.5 + dmg * 40 + (v === LAVA ? 3000 : 0) + freeze;
-    return 52 + dollars * tpd * 0.5;
+    // Deep down the drill, like the energy, is what a trip runs out of: its wear costs time too,
+    // each point as many ticks as a whole drill buys, spread over a trip.
+    const drillTicks = y > 1100 ? dw * DRILL_TICKS / Math.max(50, s.drillmax) : 0;
+    // And so is the hull, with earthquake rocks about.
+    const hullTicks = y > 1100 ? dmg * DRILL_TICKS / Math.max(50, s.hullmax) : 0;
+    return 52 + dollars * tpd * 0.5 + drillTicks + hullTicks;
   }
 
   /**
@@ -1034,6 +1147,16 @@ class Autopilot {
       }
     }
     return true;
+  }
+
+  /** Whether a fall from (x, y) would end in magma. */
+  magmaBelow(m, x, y) {
+    for (let yy = y + 1; yy < Math.min(y + 40, 3000); yy++) {
+      const v = m[x][yy];
+      if (v === MAGMA) return true;
+      if (!isOpen(v)) return false;
+    }
+    return false;
   }
 
   /** The tiles of the route to tile i, from the pod's own. */
@@ -1472,6 +1595,8 @@ class Autopilot {
       want.push(['tel2', s.money > 2e7 ? Math.max(15, stock) : Math.max(2, stock)]);
     }
     if (s.hullmax >= 600 && s.money > 1e6) want.push(['hullfix', s.money > 2e7 ? 6 : 3]);
+    // The tractor beam, for deep work.
+    if (s.money > 2e6 && now.open > 1000) want.push(['tractor', 1]);
     // TNT for rock in the shaft, once the money makes it cheap.
     if (s.money > 5e6 && now.open > 600) want.push(['tnt', s.money > 2e7 ? 30 : 10]);
     if (s.drillmax >= 2000 && s.money > 5e6) want.push(['drillfix', s.money > 2e7 ? 6 : 2]);
