@@ -170,15 +170,15 @@ const WIDE_ROWS = 400;
 // How many of the best targets the look ahead tries.
 const LOOK_AHEAD = 5;
 
-// The column of the main shaft: trips go down it and branch out sideways. It lies two columns
-// left of where the teleporters land, so the way from there, or from the shaft, to the base never
-// crosses its mouth.
-const SHAFT_X = 21;
+// The column of the main shaft, the one way down from the surface: trips go down it and branch
+// out sideways. It lies right beside the base, so a trip starts by falling into it and ends by
+// flying out of it into the base; from where the teleporters land, the pod hovers across its mouth.
+const SHAFT_X = 44;
+// How far a side branch from the way down reaches: the tile beside it.
+const BRANCH_TILES = 1;
 
-// The money that has every trip start by opening up the main shaft, wherever a tile of it has
-// closed.
+// The money from which the shaft is kept open below row 1,000 too.
 const SHAFT_MONEY = 5e5;
-const SHAFT_CLOSED = 1;
 
 // The drill a teleporter needs to pay for itself (above).
 const TEL_DRILL = 1000;
@@ -233,6 +233,8 @@ class Autopilot {
     this.ends = [];
     this.blocked = { cargo: 0, rad: 0 };
     this.tripEnd = '';
+    // Counts for testing: routes dropped off course, stuck spells, side branches taken.
+    this.stats = { offRoute: 0, stuck: 0, branches: 0 };
   }
 
   /** Switches the autopilot on or off. Its keys are released either way. */
@@ -304,7 +306,8 @@ class Autopilot {
       if (this.screen === 'base' && screen === 'play') {
         this.trip = { money: s.money, start: s.time };
         this.shaftJob = undefined;
-        this.workRow = Math.max(this.tripDeep ?? 0, 0);
+        this.shaftSkip = 0;
+        this.deepest = Math.max(this.deepest ?? 0, this.tripDeep ?? 0);
         this.tripDeep = 0;
       }
       this.screen = screen;
@@ -347,8 +350,10 @@ class Autopilot {
 
     // A fall builds up speed, and a landing too fast hurts: just before the floor, Up is pressed,
     // which brings the fall speed back down.
+    // The fall also ends where the route turns off it sideways, into a branch.
     if (!this.held.has(K.UP) && s.fallspd > 7.5 && isOpen(m[x][fy + 1])
-        && (!isOpen(m[x][fy + 2] ?? 0) || !isOpen(m[x][fy + 3] ?? 0))) this.tap(s, K.UP);
+        && (!isOpen(m[x][fy + 2] ?? 0) || !isOpen(m[x][fy + 3] ?? 0)
+          || this.fallEnd() - fy <= 3)) this.tap(s, K.UP);
 
     // Caught in magma, which burns the hull fast: out at once, by teleporter, or by freezing it.
     if (!s.explorer && (m[x][y] === MAGMA || m[x][fy] === MAGMA)) {
@@ -376,7 +381,9 @@ class Autopilot {
         && (s.explorer ? this.hotBelow(s, x, fy) : this.magmaBelow(m, x, fy))) {
       const next = this.path?.[this.at];
       const freezing = next?.how === DIG_DOWN && m[next.x][next.y] === MAGMA && (s.iceb > 0 || s.ibomb);
-      if (!next || next.how === FALL || (next.how === DIG_DOWN && !freezing)) {
+      // A planned fall that stops above the magma is let through.
+      const short = next?.how === FALL && this.fallEnd() < this.magmaRow(m, x, fy);
+      if (!next || (next.how === FALL && !short) || (next.how === DIG_DOWN && !freezing)) {
         this.path = null;
         this.keys(s, { up: true });
         this.status = 'Keeping clear of the magma below';
@@ -411,6 +418,7 @@ class Autopilot {
     } else if (++this.stuck > 240) {
       // No progress for four seconds: the plan is wrong. Avoid the next tile for a while.
       this.stuck = 0;
+      this.stats.stuck++;
       // The step it was trying, even if the route has been dropped since.
       const next = this.path?.[this.at] ?? this.lastNext;
       if (next) this.avoid.set(next.y * MAP_W + next.x, this.tickNo + 3000);
@@ -649,16 +657,20 @@ class Autopilot {
   /**
    * The teleporter the pod plans to go home by from row y, or null to fly. Below the rows the
    * fuel tank can fly home from, the teleporter is what lets the pod work there, so it is the
-   * way home. Above them it costs money a climb would not, so it is used only when the cargo
-   * pays for it many times over or the money makes it cheap, and otherwise kept for when the
-   * fuel cannot fly the pod home. Below 10,000 ft, where earthquakes can close the way up,
-   * Teleporter 2 is always the way home.
+   * way home, though when the pod is leaving with fuel enough to fly after all, Teleporter 1
+   * is kept unless the cargo is worth half of it. Above them it costs money a climb would not,
+   * so it is used only when the cargo pays for it many times over or the money makes it cheap,
+   * and otherwise kept for when the fuel cannot fly the pod home. Below 10,000 ft, where
+   * earthquakes can close the way up, Teleporter 2 is always the way home.
    */
-  teleportPays(s, y) {
+  teleportPays(s, y, leaving = false) {
     const deep = y > this.limits(s, { tel1: 0, tel2: 0 }).tank;
     const cargo = mineralProfit(s);
     if (s.tel1 > 0 && (y - 4) * 10 <= 8000 && y > 6
-        && (deep || cargo > 5 * GADGET_PRICE.tel1 || s.money > 5e6)) return 'tel1';
+        && ((deep && (!leaving || cargo > 0.5 * GADGET_PRICE.tel1)) || cargo > 5 * GADGET_PRICE.tel1
+          || s.money > 5e6)) {
+      return 'tel1';
+    }
     if (s.tel2 > 0 && y > 30
         && (deep || cargo > 5 * GADGET_PRICE.tel2 || s.money > 2e7 || y > 1000)) return 'tel2';
     return null;
@@ -713,9 +725,10 @@ class Autopilot {
         return;
       }
     }
-    // The main shaft first, when it has closed up: one tile at a time, from the top down.
-    const job = this.shaftTarget(s, x, y);
-    if (job) {
+    // The main shaft first, where it is closed: one tile at a time, from the top down.
+    for (let tries = 0; tries < 3; tries++) {
+      const job = this.shaftTarget(s, x, y);
+      if (!job) break;
       const plan = this.search(s, x, y, 3, Math.max(y, job.y) + 1,
         (i, tx, ty) => tx === SHAFT_X && ty === job.y);
       // Only with the energy for the way there and home again, as for any other target.
@@ -723,11 +736,14 @@ class Autopilot {
           + 50 * digUse(job.y + 1) * 1.2 <= s.fuel + s.battery) {
         this.path = this.route(plan, plan.found);
         this.at = 1;
+        this.goalScore = this.lastScore ?? Infinity;
         this.goal = `Clearing the main shaft at ${((job.y - 4) * 10).toLocaleString('en')} ft`;
         this.status = this.goal;
         return;
       }
-      this.shaftJob = false;
+      // Out of reach (rock the drill cannot take, say): the next closed tile below it.
+      this.shaftSkip = job.y;
+      this.shaftJob = true;
     }
     // Near the pod first; the whole of the rows it can work at if nothing near pays.
     let top = Math.max(3, y - 60);
@@ -746,6 +762,7 @@ class Autopilot {
     if (best) {
       this.path = this.route(plan, best.i);
       this.at = 1;
+      this.goalScore = best.score;
       this.goal = best.goal;
       this.status = best.goal;
       return;
@@ -756,25 +773,25 @@ class Autopilot {
   }
 
   /**
-   * The next closed tile of the main shaft to open, or null. The shaft is kept up routinely: at
-   * the start of every trip, with the money for it, the pod opens any of its tiles that have closed
-   * (earthquakes swap tiles, and ice bombs turn magma to earth) down to the depth its last trip
-   * worked at. It stops at magma, and short of the radiator's limit.
+   * The next closed tile of the main shaft to open, or null. The shaft is kept up routinely, from
+   * the first trip: at the start of every trip the pod opens any of its tiles that are closed
+   * (not yet dug, or closed since by earthquakes and ice bombs) down to the deepest row it has
+   * ever reached, so the shaft goes as deep as the digging. A tile it cannot get to is skipped
+   * for the trip. It stops at magma, and short of the Mega cooling system's limit.
    */
   shaftTarget(s, x, y) {
     if (s.explorer || this.shaftJob === false) return null;
     const m = s.map;
     if (this.shaftJob === undefined) {
       this.shaftJob = false;
-      if (y > 10 || s.money < SHAFT_MONEY) return null;
-      const end = Math.min(this.floorRow(s), this.workRow ?? 0, heatRow(s) - 200, 2400);
-      let closed = 0;
-      for (let yy = 5; yy <= end; yy++) if (!isOpen(m[SHAFT_X][yy])) closed++;
-      if (closed < SHAFT_CLOSED) return null;
+      if (y > 10) return null;
+      const hr = heatRow(s);
+      // Below row 1,000, where earthquakes close it again and again, only with money to spare.
+      this.shaftEnd = Math.min(this.floorRow(s), this.deepest ?? 0, hr > 1190 ? hr - 200 : hr,
+        s.money >= SHAFT_MONEY ? 2400 : 1000);
       this.shaftJob = true;
-      this.shaftEnd = end;
     }
-    for (let yy = 5; yy <= this.shaftEnd; yy++) {
+    for (let yy = Math.max(5, (this.shaftSkip ?? 0) + 1); yy <= this.shaftEnd; yy++) {
       const v = m[SHAFT_X][yy];
       if (v === MAGMA) break;
       if (!isOpen(v)) return { y: yy };
@@ -784,6 +801,8 @@ class Autopilot {
   }
 
   goHome(s, x, y, why) {
+    // The trip is over: the shaft waits for the next one.
+    this.shaftJob = false;
     if (s.explorer && this.diveReady(s)) why = '';
     if (s.explorer && !why) return;
     this.tripEnd = why;
@@ -791,7 +810,9 @@ class Autopilot {
     // fly the pod home. Trips are planned with a margin on the fuel home, so the pod turns for
     // home with that margin still in the tank; only a fuel short of the bare climb needs it.
     const fly = 1.1 * this.homeWay(s, x, y).energy + 2;
-    const pays = this.teleportPays(s, y);
+    // Teleporter 1 counts on as the way home from below the tank's depth, but when the fuel
+    // can fly the pod home after all, it flies unless the cargo is worth half the teleporter.
+    const pays = this.teleportPays(s, y, true);
     const t1 = s.tel1 > 0 && (y - 4) * 10 <= 8000 && y > 6;
     const t2 = s.tel2 > 0 && y > 30;
     const need = fly > s.fuel + s.battery;
@@ -898,7 +919,11 @@ class Autopilot {
     if (v >= 1 && v <= 41 && (v < 28 || v > 31)) return idiv(mineralPrice(v) * s.money_factor, 10);
     if (v in MEGA) return s[MEGA[v]] < 8 ? 5e7 : 1;
     if (v === ICE9) {
-      if (s.explorer) return s.nux >= DIVE_NUX && s.ice9 < DIVE_ICE9 + 140 ? 3e6 : 0;
+      // The super-ship: Ice9 for the dive once the explosives are in, and before that enough to
+      // dig down for the Martian bombs below the cooling's limit.
+      if (s.explorer) {
+        return (s.nux >= DIVE_NUX && s.ice9 < DIVE_ICE9 + 140) || s.ice9 < ICE9_KEYRING ? 3e6 : 0;
+      }
       // With the Mega cooling system, Ice9 is what opens the rows below its limit, and while
       // any is left the pod cannot overheat.
       if (s.radiator === 8) {
@@ -1020,6 +1045,7 @@ class Autopilot {
       }
     }
     if (best) {
+      this.lastScore = best.score;
       best.goal = best.beam
         ? this.describe(s, m, { i: best.beam[0], beam: true }, { top: best.beam[1] })
         : this.describe(s, m, best, plan);
@@ -1153,12 +1179,15 @@ class Autopilot {
             if (c < Infinity) visit(u + MAP_W, du + c, DIG_DOWN, u);
           }
         } else if (isOpen(v)) {
-          // A fall carries on to the bottom of the drop, so the whole drop must be safe.
+          // A fall can be stopped at any row by flying, so each tile fallen into must be safe,
+          // not the whole drop: the pod may fall part of the way down a drop that ends in magma,
+          // and turn off it, or hover over the magma and freeze it.
           if ((ex || v !== MAGMA) && (uy + 1 < 3000 || ex) && this.heatOk(s, uy + 1, 0, 100)
-              && safeFall(ux, uy)) {
+              && (ex ? safeFall(ux, uy) : m[ux][uy + 1] !== MAGMA)) {
             visit(u + MAP_W, du + 4, FALL, u);
           }
-        } else if (!this.avoided(ux, uy + 1)) {
+        } else if (!this.avoided(ux, uy + 1) && (uy > 4 || ux === SHAFT_X)) {
+          // The surface is broken only by the main shaft.
           // A fall into magma after the dig is safe only once an ice bomb has frozen it.
           const fallBad = isOpen(m[ux][uy + 2] ?? 0) && !safeFall(ux, uy + 1);
           const freeze = fallBad && !ex && s.iceb > 0 && m[ux][uy + 2] === MAGMA;
@@ -1190,7 +1219,7 @@ class Autopilot {
             continue;
           }
           visit(u + dx, du + (support ? 11 : 18), support ? DRIVE : AIR, u);
-        } else if (support && !(uy === 5 && nx >= 42) && uy >= 5) {
+        } else if (support && uy >= 6) {
           const fallBad = nOpenBelow && !safeFall(nx, uy);
           const freeze = fallBad && !ex && s.iceb > 0 && m[nx][uy + 1] === MAGMA;
           if (fallBad && !freeze) continue;
@@ -1295,7 +1324,8 @@ class Autopilot {
    */
   blastOk(s, x, y, r = 2) {
     const m = s.map;
-    if (y < 6 || y > 2996) return false;
+    // Never into the row under the surface, which would open a hole beside the shaft.
+    if (y - r < 6 || y > 2996) return false;
     for (let xx = Math.max(0, x - r - 1); xx <= Math.min(MAP_W - 1, x + r + 1); xx++) {
       for (let yy = y - r - 1; yy <= y + r + 1; yy++) {
         const v = m[xx][yy];
@@ -1317,6 +1347,16 @@ class Autopilot {
       if (!this.heatOk(s, yy, 0, 0)) return true;
     }
     return false;
+  }
+
+  /** The row of the magma a fall from (x, y) would end in, or Infinity. */
+  magmaRow(m, x, y) {
+    for (let yy = y + 1; yy < Math.min(y + 400, 3000); yy++) {
+      const v = m[x][yy];
+      if (v === MAGMA) return yy;
+      if (!isOpen(v)) return Infinity;
+    }
+    return Infinity;
   }
 
   /** Whether a fall from (x, y) would end in magma. */
@@ -1348,6 +1388,8 @@ class Autopilot {
     // Catch up with the route: the pod may already be further along it.
     let j = -1;
     for (let k = this.at; k < Math.min(P.length, this.at + 6); k++) {
+      // A side branch comes back to where it left: its tiles are followed one by one.
+      if (P[k].branch && k > this.at) break;
       if (P[k].x === x && P[k].y === y && this.arrived(s, P, k)) j = k;
     }
     if (j >= 0) this.at = j + 1;
@@ -1363,6 +1405,7 @@ class Autopilot {
       const near = Math.abs(next.x - x) + Math.abs(next.y - y) <= 1
         && Math.abs(prev.x - x) + Math.abs(prev.y - y) <= 1;
       if (!near) {
+        this.stats.offRoute++;
         this.path = null;
         this.keys(s);
         return;
@@ -1389,6 +1432,7 @@ class Autopilot {
       case AIR: this.sideways(s, next, fy); break;
       case DIG_DOWN:
       case DIG_SIDE:
+        if (next.how === DIG_DOWN && prev.x === x && prev.y === y && this.sideBranch(s, x, y)) break;
         if (isOpen(tv) && !(tv === MAGMA && !s.explorer && next.how === DIG_DOWN)) {
           // Already open (the laser, or magma flowing): move into it instead. Magma below is
           // frozen first, by the dig.
@@ -1400,6 +1444,62 @@ class Autopilot {
         break;
       default: this.path = null;
     }
+  }
+
+  /**
+   * A side branch before the next dig down: a mineral just to the left or right on the pod's own
+   * row, worth more for the time than the target it is digging for. The pod cannot dig
+   * upwards, so a mineral passed on the way down is dear to come back for. The branch, dug out
+   * and driven back along, is put into the route, and the way down goes on from where it left.
+   */
+  sideBranch(s, x, y) {
+    if (s.explorer || y < 6 || !(this.goalScore < Infinity)) return false;
+    const here = y * MAP_W + x;
+    if (this.branchFrom === here && this.tickNo < this.branchUntil) return false;
+    this.branchFrom = here;
+    this.branchUntil = this.tickNo + 600;
+    const m = s.map;
+    const tpd = this.ticksPerDollar(s);
+    let best = null;
+    for (const dir of [-1, 1]) {
+      let cost = 0;
+      const out = [];
+      for (let d = 1; d <= BRANCH_TILES; d++) {
+        const nx = x + dir * d;
+        // A flat branch only: each tile with ground under it, for the drive back.
+        if (nx < 0 || nx >= MAP_W || isOpen(m[nx][y + 1] ?? 0)) break;
+        const v = m[nx][y];
+        if (isOpen(v)) {
+          if (v === MAGMA) break;
+          cost += 11;
+          out.push({ x: nx, y, how: DRIVE, branch: true });
+          continue;
+        }
+        const c = this.digCost(s, nx, y, v, false, tpd);
+        if (c === Infinity) break;
+        cost += c;
+        out.push({ x: nx, y, how: DIG_SIDE, branch: true });
+        const worth = this.value(s, v, y);
+        if (worth <= 0) continue;
+        const score = worth / (cost + 11 * d + 40);
+        if (score > (best ? best.score : this.goalScore)) best = { score, out: [...out], d, dir };
+      }
+    }
+    if (!best) return false;
+    const back = [];
+    for (let k = best.d - 1; k >= 0; k--) back.push({ x: x + best.dir * k, y, how: DRIVE, branch: true });
+    this.path.splice(this.at, 0, ...best.out, ...back);
+    this.stats.branches++;
+    return true;
+  }
+
+  /** The row where the route's fall ends, the pod turning off it or digging on, or Infinity. */
+  fallEnd() {
+    const P = this.path;
+    if (!P || this.at >= P.length) return Infinity;
+    let k = this.at;
+    while (k < P.length && P[k].how === FALL) k++;
+    return k > this.at ? P[k - 1].y : P[this.at].y;
   }
 
   /** Whether the pod has reached route tile k well enough to go on from it. */
@@ -1775,13 +1875,17 @@ class Autopilot {
   /** The next gadget to buy now, or null. */
   nextGadget(s, spare) {
     const want = [];
-    // Teleporters when the climb home is what keeps the pod from going deeper.
+    // Teleporters when the climb home is what keeps the pod from going deeper, while a trip earns
+    // more than the teleporter that ends it: otherwise trips below the tank's depth lose money.
     const now = this.limits(s);
-    if (now.floor === now.tank) {
+    const tripEarns = this.income * Math.max(this.tripTicks ?? 0, 20000);
+    if (now.floor === now.tank && tripEarns > GADGET_PRICE.tel1) {
       const t1 = this.limits(s, { tel1: 2 }).floor;
       const t2 = this.limits(s, { tel2: 2 }).floor;
       if (t1 > now.floor && t1 >= t2 - 20) want.push(['tel1', 2, true]);
       else if (t2 > now.floor) want.push(['tel2', 2, true]);
+      // Teleporter 2s out of reach for now: Teleporter 1s, if they go deeper at all.
+      if (t1 > now.floor && t1 < t2 - 20 && 2 * GADGET_PRICE.tel2 > spare) want.push(['tel1', 2, true]);
     }
     // The coal burner and refinery pay for themselves within a trip or two.
     if (s.engine >= 2) want.push(['coalb', 1, true]);
@@ -1790,7 +1894,7 @@ class Autopilot {
     if (s.money > 3e5 && now.floor <= 804) want.push(['tel1', 3]);
     // The gas burner once the pod works where gas pockets lie, from row 600: they then charge
     // the battery instead of exploding.
-    if (now.floor >= 600 || s.engine >= 6) want.push(['gasb', 1]);
+    if ((now.floor >= 600 && s.money > 3e5) || s.engine >= 6) want.push(['gasb', 1]);
     // The nuclear reactor, for the energy of deep trips, once the Mega parts are in.
     const mega = ['engine', 'fueltank', 'cargobay', 'hullx', 'radiator'].every((k) => s[k] === 8);
     if ((mega && s.money > 5e5) || (s.money > 2e7 && now.open > 1500)) {
@@ -1807,10 +1911,10 @@ class Autopilot {
     // The tractor beam, for deep work.
     if (s.money > 2e6 && now.open > 1000) want.push(['tractor', 1]);
     // Dynamite and TNT for rock in the shaft, once the money makes them cheap.
-    if (s.money > 1e6 && now.open > 200) want.push(['dyn', s.money > 2e7 ? 30 : 10]);
+    if (s.money > 2e4 && now.open > 100) want.push(['dyn', s.money > 2e7 ? 30 : s.money > 1e6 ? 10 : 3]);
     if (s.money > 5e6 && now.open > 600) want.push(['tnt', s.money > 2e7 ? 30 : 10]);
     if (s.drillmax >= 2000 && s.money > 5e6) want.push(['drillfix', s.money > 2e7 ? 10 : 2]);
-    if (now.floor > 1190 && s.money > 2e6) want.push(['iceb', s.money > 2e7 ? 12 : 5]);
+    if (now.floor > 1190 && s.money > 2e5) want.push(['iceb', s.money > 2e7 ? 12 : s.money > 2e6 ? 5 : 2]);
     for (const [g, n, deeper] of want) {
       if (s[g] >= n || GADGET_PRICE[g] > spare) continue;
       // A teleporter that is the only way deeper is itself the way to earn more, and a burner
